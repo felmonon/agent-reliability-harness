@@ -1,0 +1,61 @@
+{
+  "trace_id": "lead-qualification-0001",
+  "agent_name": "sales-ops-copilot",
+  "workflow": "lead-qualification",
+  "steps": [
+    {
+      "step_id": "s1",
+      "type": "tool_call",
+      "tool_name": "crm_lookup",
+      "arguments": { "account_id": "ACC-40213", "fields": ["tier", "renewal_date", "open_opportunities"] },
+      "latency_ms": 410,
+      "cost_usd": 0.0018,
+      "output": {
+        "account_id": "ACC-40213",
+        "company": "Northwind Robotics (synthetic)",
+        "tier": "Tier 2",
+        "renewal_date": "2026-11-01",
+        "open_opportunities": 1
+      }
+    },
+    {
+      "step_id": "s2",
+      "type": "tool_call",
+      "tool_name": "knowledge_search",
+      "arguments": { "query": "Northwind Robotics renewal playbook Tier 2", "top_k": 3, "collection": "sales-playbooks" },
+      "latency_ms": 620,
+      "cost_usd": 0.0032,
+      "output": {
+        "results": [
+          { "doc_id": "kb-play-014", "title": "Tier 2 Renewal Playbook (synthetic)" }
+        ]
+      }
+    },
+    {
+      "step_id": "s3",
+      "type": "model_response",
+      "requires_grounding": true,
+      "text": "Northwind Robotics is a Tier 2 account renewing 2026-11-01 with one open opportunity. Recommend following the Tier 2 renewal playbook and scheduling a check-in call 60 days before renewal.",
+      "citations": [
+        { "source": "crm_lookup:s1", "span": [0, 78] },
+        { "source": "knowledge_search:s2#kb-play-014", "span": [79, 173] }
+      ],
+      "latency_ms": 780,
+      "cost_usd": 0.011
+    },
+    {
+      "step_id": "s4",
+      "type": "tool_call",
+      "tool_name": "calendar_schedule",
+      "arguments": {
+        "attendees": ["ae@example-corp.test", "csm@example-corp.test"],
+        "start_time": "2026-09-01T15:00:00-06:00",
+        "duration_minutes": 30,
+        "title": "Northwind Robotics renewal check-in (synthetic)"
+      },
+      "latency_ms": 340,
+      "cost_usd": 0.0009,
+      "output": { "event_id": "evt-88213", "status": "scheduled" }
+    }
+  ]
+}

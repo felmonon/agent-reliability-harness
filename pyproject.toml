@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-reliability-harness"
+version = "0.1.0"
+description = "A policy-driven reliability and evaluation harness for agentic tool-use traces: schema validation, latency/cost budgets, unsafe-pattern detection, and citation/grounding coverage scoring."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Felmon Fekadu" }]
+keywords = [
+    "agents",
+    "llm",
+    "evaluation",
+    "reliability",
+    "grounding",
+    "tool-use",
+    "observability",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["mypy>=1.8", "ruff>=0.5"]
+
+[project.scripts]
+arh = "agent_reliability_harness.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+agent_reliability_harness = ["py.typed"]

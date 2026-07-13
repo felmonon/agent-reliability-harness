@@ -1,0 +1,72 @@
+{
+  "policy_id": "enterprise-agent-default-v1",
+  "allow_unlisted_tools": false,
+  "allowed_tools": {
+    "crm_lookup": {
+      "required_arguments": {
+        "account_id": "str"
+      },
+      "optional_arguments": {
+        "fields": "list"
+      }
+    },
+    "knowledge_search": {
+      "required_arguments": {
+        "query": "str"
+      },
+      "optional_arguments": {
+        "top_k": "int",
+        "collection": "str"
+      }
+    },
+    "draft_email": {
+      "required_arguments": {
+        "to": "str",
+        "subject": "str",
+        "body": "str"
+      },
+      "optional_arguments": {
+        "cc": "list"
+      }
+    },
+    "create_ticket": {
+      "required_arguments": {
+        "title": "str",
+        "priority": "str"
+      },
+      "optional_arguments": {
+        "description": "str",
+        "assignee": "str"
+      }
+    },
+    "calendar_schedule": {
+      "required_arguments": {
+        "attendees": "list",
+        "start_time": "str",
+        "duration_minutes": "int"
+      },
+      "optional_arguments": {
+        "title": "str"
+      }
+    }
+  },
+  "budgets": {
+    "max_total_latency_ms": 6000,
+    "max_step_latency_ms": 2500,
+    "max_total_cost_usd": 0.25
+  },
+  "unsafe_patterns": [
+    "ignore (all|any|the) (previous|prior|above) instructions",
+    "\\bssn\\b",
+    "social security number",
+    "\\bapi[_-]?key\\b",
+    "\\bpassword\\s*[:=]",
+    "drop table",
+    "\\bexec\\s*\\(",
+    "\\bwire\\s+transfer\\b.*\\burgent\\b"
+  ],
+  "grounding": {
+    "require_citations": true,
+    "min_citation_coverage": 0.75
+  }
+}
