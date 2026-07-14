@@ -118,8 +118,8 @@ def _build_parser() -> argparse.ArgumentParser:
         default=FORMAT_AUTO,
         help=(
             "Trace input format. 'auto' (default) detects between the canonical "
-            "'arh' format, 'openai-chat' message lists, and 'anthropic-messages' "
-            "conversations."
+            "'arh' format, 'openai-chat' message lists, 'anthropic-messages' "
+            "conversations, and 'cohere-chat' message lists."
         ),
     )
     validate_parser.add_argument(

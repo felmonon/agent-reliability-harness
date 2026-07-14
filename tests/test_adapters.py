@@ -7,6 +7,7 @@ from pathlib import Path
 from agent_reliability_harness.adapters import (
     FORMAT_ANTHROPIC_MESSAGES,
     FORMAT_ARH,
+    FORMAT_COHERE_CHAT,
     FORMAT_OPENAI_CHAT,
     detect_format,
     normalize,
@@ -38,6 +39,36 @@ class TestDetectFormat(unittest.TestCase):
     def test_detects_bare_list_openai(self):
         raw = [{"role": "assistant", "tool_calls": []}]
         self.assertEqual(detect_format(raw), FORMAT_OPENAI_CHAT)
+
+    def test_detects_cohere_chat(self):
+        self.assertEqual(detect_format(load("cohere_chat_refund.json")), FORMAT_COHERE_CHAT)
+
+    def test_tool_plan_beats_shared_openai_wire_shape(self):
+        """Cohere shares tool_calls/role:'tool' with OpenAI; tool_plan must win."""
+        raw = {
+            "messages": [
+                {"role": "assistant", "tool_plan": "plan", "tool_calls": []},
+            ]
+        }
+        self.assertEqual(detect_format(raw), FORMAT_COHERE_CHAT)
+
+    def test_document_blocks_detected_as_cohere_without_tool_plan(self):
+        raw = {
+            "messages": [
+                {
+                    "role": "assistant",
+                    "tool_calls": [
+                        {"id": "c1", "type": "function", "function": {"name": "t"}}
+                    ],
+                },
+                {
+                    "role": "tool",
+                    "tool_call_id": "c1",
+                    "content": [{"type": "document", "document": {"data": "x"}}],
+                },
+            ]
+        }
+        self.assertEqual(detect_format(raw), FORMAT_COHERE_CHAT)
 
     def test_text_only_defaults_to_openai(self):
         raw = {"messages": [{"role": "user", "content": "hi"}]}
@@ -201,6 +232,133 @@ class TestAnthropicMessagesAdapter(unittest.TestCase):
     def test_rejects_garbage(self):
         with self.assertRaises(ValueError):
             normalize("nope", "anthropic-messages", "fb")
+
+
+class TestCohereChatAdapter(unittest.TestCase):
+    def test_refund_transcript_maps_fully(self):
+        trace_dict = normalize(load("cohere_chat_refund.json"), "cohere-chat", "fb")
+        trace = Trace.from_dict(trace_dict)
+        self.assertEqual(trace.trace_id, "cohere-refund-001")
+        self.assertEqual(trace.source, "cohere-chat")
+        types = [(s.type, s.tool_name) for s in trace.steps]
+        self.assertEqual(
+            types,
+            [
+                ("model_response", None),
+                ("tool_call", "lookup_order"),
+                ("model_response", None),
+                ("tool_call", "issue_refund"),
+                ("model_response", None),
+            ],
+        )
+        lookup = [s for s in trace.steps if s.tool_name == "lookup_order"][0]
+        self.assertEqual(lookup.step_id, "lookup_order_h8f2k1")
+        self.assertEqual(lookup.arguments, {"order_id": "ORD-9"})
+        # document block payload is flattened to its data string
+        self.assertEqual(lookup.output, '{"status": "delivered", "amount": 42.5}')
+        refund = [s for s in trace.steps if s.tool_name == "issue_refund"][0]
+        self.assertEqual(refund.arguments, {"order_id": "ORD-9", "amount": 42.5})
+        self.assertEqual(refund.output, "refund issued")
+
+    def test_tool_plan_becomes_marked_model_response(self):
+        trace_dict = normalize(load("cohere_chat_refund.json"), "cohere-chat", "fb")
+        trace = Trace.from_dict(trace_dict)
+        plans = [s for s in trace.steps if s.step_id.endswith("-plan")]
+        self.assertEqual(len(plans), 2)
+        for plan in plans:
+            self.assertEqual(plan.type, "model_response")
+            self.assertEqual(plan.metadata.get("source_field"), "tool_plan")
+        self.assertIn("look up order ORD-9", plans[0].text)
+
+    def test_message_level_citations_map_to_final_response(self):
+        trace_dict = normalize(load("cohere_chat_refund.json"), "cohere-chat", "fb")
+        trace = Trace.from_dict(trace_dict)
+        final = trace.steps[-1]
+        self.assertEqual(final.type, "model_response")
+        self.assertIn("refund of $42.50", final.text)
+        self.assertEqual(len(final.citations), 1)
+        self.assertEqual(final.citations[0]["text"], "refund of $42.50")
+
+    def test_edge_cases_recorded_not_dropped(self):
+        trace_dict = normalize(load("cohere_chat_edge_cases.json"), "cohere-chat", "fb")
+        trace = Trace.from_dict(trace_dict)
+        notes = trace.metadata["adapter"]["notes"]
+        issues = {n["issue"] for n in notes}
+        self.assertIn("argument_parse_error", issues)
+        self.assertIn("unmatched_tool_result", issues)
+        self.assertIn("non_object_message", issues)
+        self.assertIn("non_object_tool_call", issues)
+        self.assertIn("unrecognized_tool_content_block", issues)
+        self.assertIn("document_block_missing_data", issues)
+        # unparseable arguments became empty dict (missing-arg findings will fire)
+        bad = [s for s in trace.steps if s.step_id == "call_bad"][0]
+        self.assertEqual(bad.arguments, {})
+        # valid document data is still recovered from a partially-bad block list
+        self.assertEqual(bad.output, "first part")
+        # plain-string final assistant content still maps
+        self.assertEqual(trace.steps[-1].type, "model_response")
+        self.assertIn("Done", trace.steps[-1].text)
+
+    def test_round_trip_validation(self):
+        """An adapter-produced trace must be fully validatable."""
+        trace_dict = normalize(load("cohere_chat_refund.json"), "cohere-chat", "fb")
+        policy = Policy.from_dict(
+            {
+                "policy_id": "refund-policy",
+                "allowed_tools": {
+                    "lookup_order": {"required_arguments": {"order_id": "str"}},
+                    "issue_refund": {
+                        "required_arguments": {"order_id": "str", "amount": "float"},
+                        "side_effect": True,
+                    },
+                },
+                "sequence": {"call_order": ["lookup_order", "issue_refund"]},
+                "completion": {"require_final_response": True},
+            }
+        )
+        report = validate_trace(Trace.from_dict(trace_dict), policy)
+        self.assertEqual([f for f in report.findings if f.severity == "error"], [])
+        self.assertTrue(report.passed)
+
+    def test_equivalent_transcripts_produce_equivalent_verdicts(self):
+        """The same refund conversation via Cohere matches the OpenAI verdict."""
+        policy = Policy.from_dict(
+            {
+                "policy_id": "refund-policy",
+                "allowed_tools": {
+                    "lookup_order": {"required_arguments": {"order_id": "str"}},
+                    "issue_refund": {
+                        "required_arguments": {"order_id": "str", "amount": "float"},
+                        "side_effect": True,
+                    },
+                },
+                "sequence": {"call_order": ["lookup_order", "issue_refund"]},
+                "completion": {"require_final_response": True},
+            }
+        )
+        openai_report = validate_trace(
+            Trace.from_dict(normalize(load("openai_chat_refund.json"), "openai-chat", "fb")),
+            policy,
+        )
+        cohere_report = validate_trace(
+            Trace.from_dict(normalize(load("cohere_chat_refund.json"), "cohere-chat", "fb")),
+            policy,
+        )
+        self.assertEqual(openai_report.passed, cohere_report.passed)
+        self.assertEqual(
+            sorted(f.rule_id for f in openai_report.findings),
+            sorted(f.rule_id for f in cohere_report.findings),
+        )
+
+    def test_fallback_trace_id_used(self):
+        trace_dict = normalize({"messages": []}, "cohere-chat", "my_file")
+        self.assertEqual(trace_dict["trace_id"], "my_file")
+
+    def test_rejects_garbage(self):
+        with self.assertRaises(ValueError):
+            normalize(42, "cohere-chat", "fb")
+        with self.assertRaises(ValueError):
+            normalize({"nope": True}, "cohere-chat", "fb")
 
 
 class TestNormalizeDispatch(unittest.TestCase):

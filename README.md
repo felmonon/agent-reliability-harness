@@ -122,7 +122,9 @@ match - agents can legitimately reach a goal via different paths.
 - **arh** - the canonical JSON trace format ([TRACE-SPEC.md](https://github.com/felmonon/agent-reliability-harness/blob/main/TRACE-SPEC.md));
 - **openai-chat** - OpenAI Chat Completions message lists with `tool_calls`;
 - **anthropic-messages** - Anthropic Messages conversations with
-  `tool_use`/`tool_result` blocks.
+  `tool_use`/`tool_result` blocks;
+- **cohere-chat** - Cohere Chat API v2 message lists with
+  `tool_plan`/`tool_calls` and `document`-block tool results.
 
 Adapters never guess: fields a transcript format cannot carry (latency, cost,
 tokens) are left unset, which marks the dependent checks *not applicable*

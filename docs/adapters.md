@@ -10,16 +10,23 @@ recorded under `trace.metadata.adapter.notes`.
 Applied in order:
 
 1. JSON object with a `steps` list → `arh` (canonical, no conversion).
-2. Object with a `messages` list (or a bare message list):
+2. Object with a `messages` list (or a bare message list) is first scanned in
+   full for Cohere-only markers → `cohere-chat`. Cohere shares the
+   `tool_calls` / `role: "tool"` wire shape with OpenAI, so this scan must
+   run before the per-message rules below. Markers: `tool_plan` on an
+   assistant message, an assistant message-level `citations` list, or
+   `document` typed tool-result content blocks.
+3. Otherwise, message by message:
    - any assistant message with `tool_calls` or `function_call`, or any
      `role: "tool"` message → `openai-chat`;
    - any message whose `content` is a block list containing `tool_use` /
      `tool_result` → `anthropic-messages`.
-3. Text-only message lists default to `openai-chat` (both vendors' text-only
-   transcripts normalize identically).
-4. Anything else: `error: ... cannot detect trace format`.
+4. Text-only message lists default to `openai-chat` (all three vendors'
+   text-only transcripts normalize identically).
+5. Anything else: `error: ... cannot detect trace format`.
 
-Force a format with `--format openai-chat` or `--format anthropic-messages`.
+Force a format with `--format openai-chat`, `--format anthropic-messages`,
+or `--format cohere-chat`.
 
 ## openai-chat
 
@@ -59,6 +66,30 @@ strings or typed block lists.
 **Cannot carry**: `latency_ms`, `cost_usd`, token counts (transcripts don't
 embed `usage`). It *does* carry tool errors via `is_error`, so
 `error_handling` rules work on this format.
+
+## cohere-chat
+
+Input: a Cohere Chat API v2 message list (`{"messages": [...]}` or a bare
+list), per [Cohere's tool use docs](https://docs.cohere.com/docs/tool-use-overview).
+
+| Transcript element | Canonical mapping |
+|---|---|
+| assistant `tool_plan` | `model_response` step (`step_id` = `m<i>-plan`, `metadata.source_field` = `"tool_plan"`) — model-generated text stays visible to safety checks |
+| assistant `tool_calls[i]` | `tool_call` step; `step_id` = call id; `function.arguments` JSON-decoded into `arguments` (same wire shape as OpenAI) |
+| `role: "tool"` message | `output` of the matching step via `tool_call_id`; `document` content blocks are flattened to their `document.data` payloads joined in order |
+| assistant text `content` (string or `text` blocks) | `model_response` step |
+| assistant message-level `citations` | citations on that message's `model_response` step (passed through as-is) |
+| `system` / `user` messages | skipped (agent inputs, not agent behavior) |
+
+**Cannot carry** (left unset → dependent checks become *not applicable*):
+`latency_ms`, `cost_usd`, token counts, and step `status` — the transcript
+has no error channel for tool results, so status is always `"ok"`.
+
+Edge handling: unparseable `function.arguments` → empty `arguments` plus an
+`argument_parse_error` note; orphan tool results, non-object messages,
+non-`document` tool content blocks, and `document` blocks without string
+`data` → recorded as notes. Valid `document.data` payloads are still
+recovered from a partially-malformed block list.
 
 ## Trace identity
 
