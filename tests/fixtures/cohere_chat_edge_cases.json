@@ -1,0 +1,29 @@
+{
+  "trace_id": "cohere-edge-001",
+  "messages": [
+    "not a message object",
+    {
+      "role": "assistant",
+      "tool_plan": "I will call a tool with broken arguments.",
+      "tool_calls": [
+        {
+          "id": "call_bad",
+          "type": "function",
+          "function": {"name": "broken_tool", "arguments": "{not valid json"}
+        },
+        "not a tool call object"
+      ]
+    },
+    {"role": "tool", "tool_call_id": "call_missing", "content": "orphan result"},
+    {
+      "role": "tool",
+      "tool_call_id": "call_bad",
+      "content": [
+        {"type": "document", "document": {"data": "first part"}},
+        {"type": "image", "url": "https://example.com/x.png"},
+        {"type": "document", "document": {}}
+      ]
+    },
+    {"role": "assistant", "content": "Done, I think."}
+  ]
+}

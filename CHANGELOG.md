@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-07-14
+
+### Added
+
+- New `cohere-chat` adapter: imports Cohere Chat API v2 message lists
+  (`tool_plan` / `tool_calls` assistant messages, `document`-block tool
+  results, message-level citations) into the canonical trace format, with
+  auto-detection. Cohere shares the `tool_calls` wire shape with OpenAI, so
+  detection scans for Cohere-only markers (`tool_plan`, assistant
+  message-level `citations`, `document` tool-result blocks) before the
+  OpenAI rules. An assistant `tool_plan` maps to a `model_response` step
+  marked with `metadata.source_field: "tool_plan"` so plan text stays
+  visible to safety checks without being mistaken for the final answer.
+
 ## [0.2.1] - 2026-07-14
 
 ### Fixed
