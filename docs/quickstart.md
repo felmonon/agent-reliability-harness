@@ -108,7 +108,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - uses: felmonon/agent-reliability-harness@main
+      - uses: felmonon/agent-reliability-harness@v0.2.1
         with:
           policy: samples/policy_trajectory.json
           traces: samples/traces/refund_workflow_pass.json
