@@ -160,7 +160,14 @@ Independent of policy content: duplicate `step_id`s raise **ARH-SCH-010**
 - Each category scores `100 × passed_checks / total_checks`.
 - **Pass criterion:** no error-severity findings **and** score ≥ `fail_under`
   (default 70; CLI `--fail-under`). Errors always fail regardless of score;
-  warnings/infos never fail alone.
+  warnings/infos never fail alone. Precisely: a trace passes iff it has no
+  error-severity findings AND its score is >= `fail_under`. Warnings never
+  hard-fail a trace, and the unverifiable-budget warnings (ARH-BUD-005/006/007)
+  are score-neutral. One nuance inherited from v0.1.x: the grounding category's
+  score is coverage-based, so a policy with `require_citations: false` and low
+  coverage can still drag the overall score below `fail_under` even though its
+  findings are warnings. Set `min_citation_coverage: 0` if you do not want
+  grounding to affect the score.
 
 ## Validation errors
 

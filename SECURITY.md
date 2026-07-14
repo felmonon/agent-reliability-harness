@@ -17,6 +17,11 @@ are compiled with Python's `re` module. A pathological regex can be slow
 (ReDoS-style backtracking). Policies are configuration authored by the same
 team that runs the harness — do **not** run policies from untrusted sources.
 Invalid regexes fail loudly with a precise `ValueError` before any scanning.
+There is **no runtime timeout** around regex matching: a policy regex with
+catastrophic backtracking (e.g. `(a+)+$`) evaluated against adversarial trace
+content can hang the process. Treat policies as trusted, reviewed code; in CI,
+rely on the job timeout as a backstop. A linear-time matching option is on the
+roadmap.
 
 **No network, no telemetry, no clocks.** The core makes zero network calls,
 collects zero telemetry, and reads no clocks or environment state during

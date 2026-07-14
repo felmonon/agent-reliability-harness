@@ -12,7 +12,7 @@ forward.
   completion) are *not applicable* for policies that don't configure them, and
   the score renormalizes over applicable categories only — so a v0.1.x policy
   yields byte-identical scores. Pinned by `tests/test_compat_golden.py`
-  (sample scores 100.0 / 80.0 / 70.0, verdicts, and finding messages) and
+  (sample scores 100.0 / 80.0 / 70.83, verdicts, and finding messages) and
   `tests/test_trajectory_rules.py::TestLegacyScoreCompatibility`.
 - **Finding messages** for all v0.1.x checks are unchanged (golden-tested).
 - **Console markers** (`[PASS]`, `[FAIL]`, `[safety   ]` category blocks,
@@ -68,3 +68,34 @@ baseline once with 0.2.0 upgrades fingerprints to rule-ID precision.
   and reject unknown majors precisely (already enforced by the parsers).
 - Minor releases must keep the golden compatibility tests green; changing them
   requires a documented breaking-change decision first.
+
+## Documented behavior changes in 0.2.0 (review-driven, not silent)
+
+These are deliberate fixes for detection gaps found in independent review.
+Each is visible in the changelog and covered by tests
+(`tests/test_review_fixes.py`):
+
+1. **Safety scanning now recurses into nested lists/dicts** in tool
+   arguments, outputs, and the step `error` string. v0.1.x only scanned
+   top-level string values, so unsafe content nested one level deep evaded
+   detection entirely. Scores can shift slightly for traces with nested
+   structures (the `support_escalation_unsafe` sample moves from 70.0 to
+   70.83; its verdict is unchanged). New findings may appear for traces that
+   previously hid unsafe content in nested fields - that is the fix working.
+2. **Malformed telemetry is now rejected at parse time**: negative,
+   non-finite, or mistyped `latency_ms`/`cost_usd`, fractional token counts,
+   and non-string `text`/`tool_name`/`error` raise a precise `ValueError`
+   instead of being silently summed (v0.1.x accepted e.g. latency `-1000`,
+   which could cancel out a budget overrun).
+3. **Unverifiable budgets warn instead of silently passing or failing**:
+   when a policy sets a latency/cost/token budget but the trace records no
+   corresponding data, score-neutral warnings ARH-BUD-006/ARH-BUD-007/
+   ARH-BUD-005 are emitted. A v0.1.x baseline compared against a v0.2.0
+   candidate may therefore show these warnings as "new findings"; they do
+   not fail the default regression gate (only error-severity findings do).
+4. **`ARH-SCH-010` (duplicate step_id lint)** is new detection: traces with
+   duplicate step IDs now produce a warning that v0.1.x never reported.
+   Same compare-time note as above applies.
+5. **Invalid `ArgSpec.pattern` regexes and `min > max` bounds are rejected
+   at policy load** with a precise error; v0.1.x had no such constraints
+   (the object form did not exist).

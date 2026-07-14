@@ -233,27 +233,41 @@ def _diff_findings(
     # Second pass: match remaining findings ignoring rule_id, so baselines
     # produced by v0.1.x (which had no rule_id) do not report every finding
     # as both new and resolved.
-    legacy_involved = any(not f.rule_id for f in baseline) or any(
-        not f.rule_id for f in candidate
-    )
-    if legacy_involved and new and resolved:
-        resolved_loose: Counter[tuple[str, str, str]] = Counter(
-            f.loose_fingerprint() for f in resolved
+    #
+    # IMPORTANT: a pair may only loose-match when at least one side lacks a
+    # rule_id. Two findings that BOTH carry (different) rule_ids are
+    # genuinely different findings and must never cancel each other out;
+    # otherwise a new ARH-FLW-002 could silently "match" a resolved
+    # ARH-FLW-001 on the same step and hide a real regression.
+    if new and resolved:
+        resolved_no_id: Counter[tuple[str, str, str]] = Counter(
+            f.loose_fingerprint() for f in resolved if not f.rule_id
         )
+        resolved_with_id: Counter[tuple[str, str, str]] = Counter(
+            f.loose_fingerprint() for f in resolved if f.rule_id
+        )
+        consumed_no_id: Counter[tuple[str, str, str]] = Counter()
+        consumed_with_id: Counter[tuple[str, str, str]] = Counter()
         still_new: list[FindingRef] = []
-        matched_loose: Counter[tuple[str, str, str]] = Counter()
         for finding in new:
             fp3 = finding.loose_fingerprint()
-            if resolved_loose[fp3] > 0:
-                resolved_loose[fp3] -= 1
-                matched_loose[fp3] += 1
+            if resolved_no_id[fp3] > 0:
+                # any new finding may match a legacy (no-rule_id) baseline finding
+                resolved_no_id[fp3] -= 1
+                consumed_no_id[fp3] += 1
+            elif not finding.rule_id and resolved_with_id[fp3] > 0:
+                # a legacy candidate finding may match a tagged baseline finding
+                resolved_with_id[fp3] -= 1
+                consumed_with_id[fp3] += 1
             else:
                 still_new.append(finding)
         still_resolved: list[FindingRef] = []
         for finding in resolved:
             fp3 = finding.loose_fingerprint()
-            if matched_loose[fp3] > 0:
-                matched_loose[fp3] -= 1
+            if not finding.rule_id and consumed_no_id[fp3] > 0:
+                consumed_no_id[fp3] -= 1
+            elif finding.rule_id and consumed_with_id[fp3] > 0:
+                consumed_with_id[fp3] -= 1
             else:
                 still_resolved.append(finding)
         new, resolved = still_new, still_resolved

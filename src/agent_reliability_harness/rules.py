@@ -62,6 +62,10 @@ _RULES = [
          "Trim prompts/outputs or reduce steps; raise max_total_tokens only if the budget changed."),
     Rule("ARH-BUD-005", "budget", "Token budget is set but the trace has no token data", "warning",
          "Record input_tokens/output_tokens in the trace, or remove max_total_tokens."),
+    Rule("ARH-BUD-006", "budget", "Latency budget is set but the trace has no latency data", "warning",
+         "Record latency_ms in the trace, or remove the latency budget."),
+    Rule("ARH-BUD-007", "budget", "Cost budget is set but the trace has no cost data", "warning",
+         "Record cost_usd in the trace, or remove max_total_cost_usd."),
     # --- safety: disallowed content -------------------------------------
     Rule("ARH-SAF-001", "safety", "Content matches a disallowed pattern", "error",
          "Trace content matched an unsafe-pattern regex (e.g. prompt injection or a secret). "

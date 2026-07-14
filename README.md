@@ -146,8 +146,9 @@ no secrets and is fork-safe. Full reference and SARIF/JUnit upload examples:
 - **Additive schema evolution.** v0.1.x traces, policies, and baselines work
   unchanged; unknown major schema versions are rejected loudly
   ([COMPATIBILITY.md](COMPATIBILITY.md)).
-- **Evidence over claims.** The benchmark suite seeds 34 known failure cases
-  and measures detection: currently 34/34, precision 1.0, recall 1.0, 0 false
+- **Evidence over claims.** The benchmark suite contains 34 seeded cases
+  (28 expected-fail, 6 expected-pass controls) and measures detection:
+  currently 34/34 correct, precision 1.0, recall 1.0, 0 false
   positives/negatives, byte-identical repeat runs, ~0.03 ms per trace. Those
   numbers cover *seeded, deterministically detectable* failures only — scope
   and limits are documented in [BENCHMARK-METHODOLOGY.md](BENCHMARK-METHODOLOGY.md),

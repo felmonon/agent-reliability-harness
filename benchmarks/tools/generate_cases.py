@@ -367,9 +367,12 @@ def build_cases():
     cases.append(case(
         "empty_trace", "An empty trace satisfies nothing.",
         "removed all steps", False,
+        # every configured budget is unverifiable on an empty trace, so all
+        # three coverage warnings fire (score-neutral, non-failing)
         [["error", "ARH-CMP-001", None],
          ["error", "ARH-SEQ-001", None], ["error", "ARH-SEQ-001", None],
-         ["warning", "ARH-BUD-005", None]],
+         ["warning", "ARH-BUD-005", None], ["warning", "ARH-BUD-006", None],
+         ["warning", "ARH-BUD-007", None]],
         category="completion", trace_obj=t))
 
     # --- grounding ----------------------------------------------------------

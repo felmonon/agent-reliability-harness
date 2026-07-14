@@ -36,6 +36,7 @@ v0.1.x policy produces byte-identical scores under this version.
 from __future__ import annotations
 
 import json
+import math
 import re
 from typing import Any
 from urllib.parse import urlparse
@@ -66,9 +67,20 @@ _CATEGORY_WEIGHTS = {
 }
 
 
+def _json_fallback(value: Any) -> str:
+    """Deterministic fallback for non-JSON values passed via the Python API.
+
+    ``repr`` is not used because default object reprs embed memory addresses,
+    which would make identity comparison nondeterministic across runs.
+    """
+    return f"<non-json:{type(value).__name__}>"
+
+
 def _canonical_arguments(step: Step) -> str:
     """Stable serialization of a step's arguments for identity comparison."""
-    return json.dumps(step.arguments or {}, sort_keys=True, separators=(",", ":"), default=repr)
+    return json.dumps(
+        step.arguments or {}, sort_keys=True, separators=(",", ":"), default=_json_fallback
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -190,8 +202,9 @@ def _check_arg_value(
     arg_type = spec.type
     expected = TYPE_MAP.get(arg_type)
     if expected is None:
-        # Unknown declared type in the policy itself; treat permissively but
-        # surface it so the policy author can fix it.
+        # Unknown declared type in the policy itself; skip only the *type*
+        # check but surface it so the policy author can fix it. Value
+        # constraints (enum/pattern/range) below still apply.
         findings.append(
             Finding(
                 severity="info",
@@ -204,8 +217,7 @@ def _check_arg_value(
                 ),
             )
         )
-        return True
-    if expected != (object,):
+    elif expected != (object,):
         if isinstance(arg_value, bool) and expected != (bool,):
             # bool is a subclass of int in Python; don't let a bool satisfy "int".
             type_ok = False
@@ -263,6 +275,26 @@ def _check_arg_value(
             )
             ok = False
     if isinstance(arg_value, (int, float)) and not isinstance(arg_value, bool):
+        if math.isnan(float(arg_value)) and (
+            spec.min_value is not None or spec.max_value is not None
+        ):
+            # NaN compares false against every bound; without this check it
+            # would silently bypass min/max constraints.
+            findings.append(
+                Finding(
+                    severity="error",
+                    category="schema",
+                    step_id=step.step_id,
+                    rule_id="ARH-SCH-009",
+                    message=(
+                        f"tool '{tool_name}' argument '{arg_name}' value NaN "
+                        f"cannot satisfy the allowed numeric range"
+                    ),
+                    expected="a finite number within the allowed range",
+                    observed="NaN",
+                )
+            )
+            return False
         if spec.min_value is not None and arg_value < spec.min_value:
             findings.append(
                 Finding(
@@ -333,7 +365,32 @@ def _check_budgets(
     checks_total = 0
     checks_passed = 0
 
-    if budgets.max_step_latency_ms is not None:
+    has_latency_data = any(s.latency_ms is not None for s in trace.steps)
+    has_cost_data = any(s.cost_usd is not None for s in trace.steps)
+
+    latency_budget_set = (
+        budgets.max_step_latency_ms is not None or budgets.max_total_latency_ms is not None
+    )
+    if latency_budget_set and not has_latency_data:
+        # A budget the trace cannot demonstrate compliance with must not
+        # silently pass. Score-neutral warning: warnings never fail a trace.
+        findings.append(
+            Finding(
+                severity="warning",
+                category="budget",
+                step_id=None,
+                rule_id="ARH-BUD-006",
+                message=(
+                    "policy sets a latency budget but the trace records no "
+                    "latency data; the latency budget cannot be verified"
+                ),
+                expected="steps with latency_ms recorded",
+                observed="no latency data in trace",
+                remediation="Record latency_ms in the trace or remove the latency budget.",
+            )
+        )
+
+    if budgets.max_step_latency_ms is not None and has_latency_data:
         for step in trace.steps:
             if step.latency_ms is None:
                 continue
@@ -357,7 +414,7 @@ def _check_budgets(
             else:
                 checks_passed += 1
 
-    if budgets.max_total_latency_ms is not None:
+    if budgets.max_total_latency_ms is not None and has_latency_data:
         checks_total += 1
         if total_latency > budgets.max_total_latency_ms:
             findings.append(
@@ -378,7 +435,24 @@ def _check_budgets(
         else:
             checks_passed += 1
 
-    if budgets.max_total_cost_usd is not None:
+    if budgets.max_total_cost_usd is not None and not has_cost_data:
+        findings.append(
+            Finding(
+                severity="warning",
+                category="budget",
+                step_id=None,
+                rule_id="ARH-BUD-007",
+                message=(
+                    "policy sets max_total_cost_usd but the trace records no "
+                    "cost data; the cost budget cannot be verified"
+                ),
+                expected="steps with cost_usd recorded",
+                observed="no cost data in trace",
+                remediation="Record cost_usd in the trace or remove max_total_cost_usd.",
+            )
+        )
+
+    if budgets.max_total_cost_usd is not None and has_cost_data:
         checks_total += 1
         if total_cost > budgets.max_total_cost_usd:
             findings.append(
@@ -399,27 +473,28 @@ def _check_budgets(
         else:
             checks_passed += 1
 
-    if budgets.max_total_tokens is not None:
-        checks_total += 1
-        if total_tokens is None:
-            # A budget the trace cannot demonstrate compliance with must not
-            # silently pass.
-            findings.append(
-                Finding(
-                    severity="warning",
-                    category="budget",
-                    step_id=None,
-                    rule_id="ARH-BUD-005",
-                    message=(
-                        "policy sets max_total_tokens but the trace records no "
-                        "token usage; the token budget cannot be verified"
-                    ),
-                    expected="steps with input_tokens/output_tokens recorded",
-                    observed="no token data in trace",
-                    remediation="Record token usage in the trace or remove max_total_tokens.",
-                )
+    if budgets.max_total_tokens is not None and total_tokens is None:
+        # A budget the trace cannot demonstrate compliance with must not
+        # silently pass. Score-neutral warning: warnings never fail a trace.
+        findings.append(
+            Finding(
+                severity="warning",
+                category="budget",
+                step_id=None,
+                rule_id="ARH-BUD-005",
+                message=(
+                    "policy sets max_total_tokens but the trace records no "
+                    "token usage; the token budget cannot be verified"
+                ),
+                expected="steps with input_tokens/output_tokens recorded",
+                observed="no token data in trace",
+                remediation="Record token usage in the trace or remove max_total_tokens.",
             )
-        elif total_tokens > budgets.max_total_tokens:
+        )
+
+    if budgets.max_total_tokens is not None and total_tokens is not None:
+        checks_total += 1
+        if total_tokens > budgets.max_total_tokens:
             findings.append(
                 Finding(
                     severity="error",
@@ -446,20 +521,32 @@ def _check_budgets(
 # ---------------------------------------------------------------------------
 
 
+def _collect_strings(value: Any, into: list[str]) -> None:
+    """Recursively collect every string in a JSON-shaped structure.
+
+    Traverses dicts and lists to any depth so that unsafe content nested
+    inside structured tool arguments or outputs cannot evade scanning.
+    JSON data cannot contain cycles, so no cycle guard is needed.
+    """
+    if isinstance(value, str):
+        if value:
+            into.append(value)
+    elif isinstance(value, dict):
+        for child in value.values():
+            _collect_strings(child, into)
+    elif isinstance(value, (list, tuple)):
+        for child in value:
+            _collect_strings(child, into)
+
+
 def _iter_text_blobs(step: Step) -> list[str]:
     blobs: list[str] = []
     if step.text:
         blobs.append(step.text)
-    if isinstance(step.output, str):
-        blobs.append(step.output)
-    elif isinstance(step.output, dict):
-        for value in step.output.values():
-            if isinstance(value, str):
-                blobs.append(value)
-    if isinstance(step.arguments, dict):
-        for value in step.arguments.values():
-            if isinstance(value, str):
-                blobs.append(value)
+    _collect_strings(step.output, blobs)
+    _collect_strings(step.arguments, blobs)
+    if step.error:
+        blobs.append(step.error)
     return blobs
 
 
@@ -952,7 +1039,16 @@ def _lint_structure(trace: Trace) -> list[Finding]:
 def validate_trace(
     trace: Trace, policy: Policy, fail_under: float = DEFAULT_FAIL_UNDER
 ) -> TraceReport:
-    """Validate a single trace against a policy and produce a report."""
+    """Validate a single trace against a policy and produce a report.
+
+    Raises ``ValueError`` for invalid ``fail_under`` values or invalid
+    policy regexes.
+    """
+
+    if not isinstance(fail_under, (int, float)) or isinstance(fail_under, bool):
+        raise ValueError("fail_under must be a number between 0 and 100")
+    if math.isnan(float(fail_under)) or not (0.0 <= float(fail_under) <= 100.0):
+        raise ValueError(f"fail_under must be between 0 and 100, got {fail_under}")
 
     schema_findings, schema_score, schema_applicable = _check_schema(trace, policy)
     (

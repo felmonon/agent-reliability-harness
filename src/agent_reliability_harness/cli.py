@@ -11,8 +11,9 @@ Examples:
 Exit codes:
 
 - ``0``: validation passed / regression gate passed;
-- ``1``: at least one trace failed / the gate failed;
-- ``2``: invalid usage or invalid input files.
+- ``1``: at least one trace failed, the gate failed, or an input file was
+  invalid (reported as a clean ``error: ...`` message);
+- ``2``: command-line usage errors (argparse).
 """
 
 from __future__ import annotations
@@ -44,17 +45,28 @@ from agent_reliability_harness.report import (
 )
 from agent_reliability_harness.validator import DEFAULT_FAIL_UNDER, validate_trace
 
-#: Exit code for usage / input errors (argparse also uses 2).
-EXIT_USAGE = 2
-
 
 def _load_json(path: Path) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise SystemExit(f"error: failed to parse JSON from {path}: {exc}") from exc
+    except RecursionError:
+        raise SystemExit(
+            f"error: JSON in {path} is nested too deeply to parse safely"
+        ) from None
     except OSError as exc:
         raise SystemExit(f"error: failed to read {path}: {exc}") from exc
+
+
+def _fail_under_value(text: str) -> float:
+    try:
+        value = float(text)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"invalid number: {text!r}") from exc
+    if value != value or not (0.0 <= value <= 100.0):  # NaN-safe bounds check
+        raise argparse.ArgumentTypeError("fail-under must be between 0 and 100")
+    return value
 
 
 def _write_text(path: Path, content: str) -> None:
@@ -106,7 +118,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     validate_parser.add_argument(
         "--fail-under",
-        type=float,
+        type=_fail_under_value,
         default=DEFAULT_FAIL_UNDER,
         help=f"Minimum passing score, 0-100 (default: {DEFAULT_FAIL_UNDER})",
     )
@@ -185,7 +197,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     compare_parser.add_argument(
         "--fail-under",
-        type=float,
+        type=_fail_under_value,
         default=DEFAULT_FAIL_UNDER,
         help=(
             "Minimum passing score for candidate traces when validating with "
@@ -363,7 +375,7 @@ def main(argv: list[str] | None = None) -> int:
         return _run_compare(args)
 
     parser.error(f"unknown command: {args.command}")
-    return EXIT_USAGE  # pragma: no cover
+    return 2  # pragma: no cover - parser.error() exits with code 2
 
 
 if __name__ == "__main__":

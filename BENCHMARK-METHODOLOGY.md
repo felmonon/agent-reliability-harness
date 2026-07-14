@@ -103,3 +103,17 @@ python benchmarks/run.py --write            # rewrites BENCHMARK-RESULTS.md
 
 Numbers vary with hardware; thresholds are set loosely enough to hold on any
 recent machine and in CI.
+
+## Known limitations of the current suite
+
+- All 34 cases derive from a single refund workflow and one base policy
+  family. This is sufficient for detector-correctness claims (the checks are
+  structural, not domain-specific) but is not evidence of real-world
+  precision across diverse workloads. Adding independently authored
+  workflows is tracked in ROADMAP.md.
+- 6 of the 34 cases are expected-pass controls; 28 seed failures. The
+  precision figure therefore leans on the exactness requirement (no
+  unexpected findings in ANY case) rather than a large clean corpus.
+- The 50 ms/trace performance threshold is a catastrophic-regression guard,
+  not a competitive benchmark; measured medians are ~3 orders of magnitude
+  below it.

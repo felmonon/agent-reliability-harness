@@ -17,6 +17,8 @@ are rejected with a precise error instead of being silently misread.
 
 from __future__ import annotations
 
+import math
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -107,9 +109,38 @@ class Step:
                     f"step '{step_id}' field '{key}' must be a number, "
                     f"got {type(value).__name__}"
                 )
-            if value < 0:
-                raise ValueError(f"step '{step_id}' field '{key}' must be >= 0")
+            if isinstance(value, float) and not value.is_integer():
+                raise ValueError(
+                    f"step '{step_id}' field '{key}' must be an integer token count, "
+                    f"got {value}"
+                )
+            if not math.isfinite(float(value)) or value < 0:
+                raise ValueError(f"step '{step_id}' field '{key}' must be a finite number >= 0")
             return int(value)
+
+        def _opt_metric(key: str) -> float | None:
+            value = raw.get(key)
+            if value is None:
+                return None
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ValueError(
+                    f"step '{step_id}' field '{key}' must be a number, "
+                    f"got {type(value).__name__}"
+                )
+            if not math.isfinite(float(value)) or value < 0:
+                raise ValueError(f"step '{step_id}' field '{key}' must be a finite number >= 0")
+            return float(value)
+
+        def _opt_str(key: str) -> str | None:
+            value = raw.get(key)
+            if value is None:
+                return None
+            if not isinstance(value, str):
+                raise ValueError(
+                    f"step '{step_id}' field '{key}' must be a string, "
+                    f"got {type(value).__name__}"
+                )
+            return value
 
         arguments = raw.get("arguments")
         if arguments is not None and not isinstance(arguments, dict):
@@ -125,16 +156,16 @@ class Step:
         return Step(
             step_id=step_id,
             type=step_type,
-            tool_name=raw.get("tool_name"),
+            tool_name=_opt_str("tool_name"),
             arguments=arguments,
-            text=raw.get("text"),
+            text=_opt_str("text"),
             citations=list(raw.get("citations") or []),
-            latency_ms=raw.get("latency_ms"),
-            cost_usd=raw.get("cost_usd"),
+            latency_ms=_opt_metric("latency_ms"),
+            cost_usd=_opt_metric("cost_usd"),
             requires_grounding=bool(raw.get("requires_grounding", False)),
             output=raw.get("output"),
             status=status,
-            error=raw.get("error"),
+            error=_opt_str("error"),
             input_tokens=_opt_int("input_tokens"),
             output_tokens=_opt_int("output_tokens"),
             metadata=dict(metadata),
@@ -225,14 +256,31 @@ class ArgSpec:
             if enum is not None and not isinstance(enum, list):
                 raise ValueError(f"policy argument '{context}': 'enum' must be a list")
             pattern = raw.get("pattern")
-            if pattern is not None and not isinstance(pattern, str):
-                raise ValueError(f"policy argument '{context}': 'pattern' must be a string")
+            if pattern is not None:
+                if not isinstance(pattern, str):
+                    raise ValueError(f"policy argument '{context}': 'pattern' must be a string")
+                try:
+                    re.compile(pattern)
+                except re.error as exc:
+                    raise ValueError(
+                        f"policy argument '{context}': invalid pattern regex: {exc}"
+                    ) from exc
             for bound in ("min", "max"):
                 value = raw.get(bound)
                 if value is not None and (
-                    isinstance(value, bool) or not isinstance(value, (int, float))
+                    isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or not math.isfinite(float(value))
                 ):
-                    raise ValueError(f"policy argument '{context}': '{bound}' must be a number")
+                    raise ValueError(
+                        f"policy argument '{context}': '{bound}' must be a finite number"
+                    )
+            min_value = raw.get("min")
+            max_value = raw.get("max")
+            if min_value is not None and max_value is not None and min_value > max_value:
+                raise ValueError(
+                    f"policy argument '{context}': min ({min_value}) exceeds max ({max_value})"
+                )
             return ArgSpec(
                 type=str(raw.get("type", "any")),
                 enum=enum,

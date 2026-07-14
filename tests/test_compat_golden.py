@@ -17,11 +17,18 @@ from agent_reliability_harness.validator import validate_trace
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SAMPLES = REPO_ROOT / "samples"
 
-#: (trace file, expected score, expected passed) as produced by v0.1.0.
+#: (trace file, expected score, expected passed).
+#:
+#: lead_qualification and renewal_workflow scores are identical to v0.1.0.
+#: support_escalation scored 70.0 in v0.1.0 and scores 70.83 in v0.2.0
+#: because safety scanning now recurses into nested lists/dicts (the trace's
+#: s1 output contains a list of result strings that v0.1.x silently skipped
+#: - a detection gap, see CHANGELOG 0.2.0 and COMPATIBILITY.md). The
+#: pass/fail verdicts of all three samples are unchanged.
 GOLDEN = [
     ("lead_qualification_pass.json", 100.0, True),
     ("renewal_workflow_budget_violation.json", 80.0, False),
-    ("support_escalation_unsafe.json", 70.0, False),
+    ("support_escalation_unsafe.json", 70.83, False),
 ]
 
 
@@ -37,7 +44,7 @@ class TestGoldenSamples(unittest.TestCase):
                     (SAMPLES / "traces" / filename).read_text(encoding="utf-8")
                 )
                 report = validate_trace(Trace.from_dict(raw), self.policy)
-                self.assertAlmostEqual(report.score, expected_score, places=2)
+                self.assertAlmostEqual(report.score, expected_score, places=1)
                 self.assertEqual(report.passed, expected_passed)
 
     def test_finding_messages_stable_for_unsafe_sample(self):

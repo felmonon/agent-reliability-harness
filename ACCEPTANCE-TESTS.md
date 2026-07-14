@@ -17,7 +17,7 @@ Linux/macOS/Windows).
 | 7 | Deterministic reports across repeated runs | benchmark determinism: byte_identical=True; `tests/test_cli_compare.py::TestDeterministicOutputs` (all four formats byte-compared via CLI) |
 | 8 | GitHub Action integration | `action.yml` (composite, no secrets); the same command paths smoke-tested in `.github/workflows/ci.yml` on ubuntu/macos/windows |
 | 9 | Realistic benchmark fixtures + methodology | `benchmarks/cases/` (34 seeded cases), `benchmarks/tools/generate_cases.py` (deterministic; CI checks cases are in sync), `BENCHMARK-METHODOLOGY.md` (incl. explicit out-of-scope list) |
-| 10 | Backward compatibility / migration path | `tests/test_compat_golden.py` (v0.1 sample scores 100.0/80.0/70.0, verdicts, messages pinned); legacy baselines match in compare (`TestLegacyBaselineCompatibility`); `COMPATIBILITY.md` |
+| 10 | Backward compatibility / migration path | `tests/test_compat_golden.py` (v0.1 sample verdicts and messages pinned; scores 100.0/80.0 unchanged, unsafe sample 70.0->70.83 due to the documented nested-safety-scan fix); legacy baselines match in compare (`TestLegacyBaselineCompatibility`); `COMPATIBILITY.md` |
 | 11 | Reproducible detection of seeded failures | benchmark detection: TP=40, FP=0, FN=0 across 34 cases |
 | 12 | Documented precision/recall | `BENCHMARK-RESULTS.md` (precision 1.0000, recall 1.0000) with the seeded-scope caveat in `BENCHMARK-METHODOLOGY.md` |
 | 13 | Performance | measured median 0.027 ms/trace, p95 0.029 ms/trace, peak traced memory 3.5 KB (threshold: < 50 ms/trace, CI-enforced) |

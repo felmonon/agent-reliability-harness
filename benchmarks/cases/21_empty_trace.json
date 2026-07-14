@@ -119,6 +119,16 @@
         "warning",
         "ARH-BUD-005",
         null
+      ],
+      [
+        "warning",
+        "ARH-BUD-006",
+        null
+      ],
+      [
+        "warning",
+        "ARH-BUD-007",
+        null
       ]
     ]
   }

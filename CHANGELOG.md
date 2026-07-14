@@ -57,6 +57,33 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **(review)** Regression loose-matching could silently cancel two findings
+  with *different* rule IDs on the same step whenever any legacy finding was
+  present, hiding real regressions from the CI gate. Loose matching now
+  applies only when at least one side of a pair lacks a `rule_id`.
+- **(review)** Safety scanning now recurses into nested lists/dicts and the
+  step `error` string; unsafe content one level deep no longer evades
+  detection.
+- **(review)** Warning-only traces can no longer fail: unverifiable budget
+  warnings (ARH-BUD-005, new ARH-BUD-006 latency, new ARH-BUD-007 cost) are
+  score-neutral.
+- **(review)** Malformed telemetry (negative/non-finite/mistyped latency,
+  cost, tokens; non-string text/tool_name/error) is rejected at parse time.
+- **(review)** `ArgSpec` patterns are compiled at policy load (precise error
+  instead of a traceback), `min > max` and non-finite bounds are rejected,
+  NaN values can no longer bypass range constraints, and unknown declared
+  types no longer disable enum/pattern/range checks.
+- **(review)** JUnit output strips XML-1.0-illegal control characters so
+  strict CI consumers can always parse it; Markdown reports escape
+  trace-derived fields in table cells.
+- **(review)** The GitHub Action passes all inputs via `env:` bindings
+  instead of interpolating `${{ inputs.* }}` into the script, closing a
+  shell-injection vector.
+- **(review)** CLI: `--fail-under` is bounds-checked (usage error, exit 2);
+  pathologically nested JSON fails with a clean message instead of a
+  `RecursionError` traceback; the module docstring documents real exit
+  codes.
+
 - v0.1.x reported type errors for **required** arguments twice (the argument
   was checked in two loops). Each argument is now checked exactly once; the
   duplicate finding is gone. Scores and verdicts are unchanged.

@@ -8,11 +8,29 @@ output. No renderer reads a clock, environment, or random source.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 from xml.sax.saxutils import escape, quoteattr
 
 from agent_reliability_harness.models import Finding, TraceReport
 from agent_reliability_harness.rules import UNKNOWN_RULE_ID, get_rule
+
+#: Characters illegal in XML 1.0 even when entity-escaped (C0 controls except
+#: tab/newline/carriage-return). Replaced with U+FFFD before rendering.
+_XML_ILLEGAL = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def _xml_text(value: str) -> str:
+    return escape(_XML_ILLEGAL.sub("\ufffd", value))
+
+
+def _xml_attr(value: str) -> str:
+    return quoteattr(_XML_ILLEGAL.sub("\ufffd", value))
+
+
+def _md_cell(value: str) -> str:
+    """Escape a value for use inside a Markdown table cell."""
+    return value.replace("|", "\\|").replace("\n", " ")
 
 _SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
 
@@ -101,7 +119,8 @@ def render_markdown(reports: list[TraceReport]) -> str:
         status = "PASS" if report.passed else "FAIL"
         coverage = f"{report.citation_coverage:.0%}" if report.citation_coverage is not None else "n/a"
         lines.append(
-            f"| {report.trace_id} | {report.agent_name} | {report.workflow} | {status} | "
+            f"| {_md_cell(report.trace_id)} | {_md_cell(report.agent_name)} | "
+            f"{_md_cell(report.workflow)} | {status} | "
             f"{report.score:.1f} | {report.total_latency_ms:.0f} | {report.total_cost_usd:.4f} | {coverage} |"
         )
 
@@ -109,14 +128,14 @@ def render_markdown(reports: list[TraceReport]) -> str:
         if not report.findings:
             continue
         lines.append("")
-        lines.append(f"## Findings: {report.trace_id}")
+        lines.append(f"## Findings: {_md_cell(report.trace_id)}")
         lines.append("")
         lines.append("| Severity | Rule | Category | Step | Message |")
         lines.append("|---|---|---|---|---|")
         for finding in _sorted_findings(report.findings):
-            step = finding.step_id or "-"
+            step = _md_cell(finding.step_id or "-")
             rule = finding.rule_id or "-"
-            message = finding.message.replace("|", "\\|")
+            message = _md_cell(finding.message)
             lines.append(
                 f"| {finding.severity} | {rule} | {finding.category} | {step} | {message} |"
             )
@@ -151,8 +170,8 @@ def render_junit(reports: list[TraceReport]) -> str:
         f'failures="{failures}" errors="0" skipped="0">'
     )
     for report in reports:
-        classname = quoteattr(f"{report.agent_name}.{report.workflow}")
-        name = quoteattr(report.trace_id)
+        classname = _xml_attr(f"{report.agent_name}.{report.workflow}")
+        name = _xml_attr(report.trace_id)
         time = f"{report.total_latency_ms / 1000.0:.3f}"
         if report.passed:
             lines.append(
@@ -173,8 +192,8 @@ def render_junit(reports: list[TraceReport]) -> str:
             for f in _sorted_findings(report.findings)
         ]
         lines.append(
-            f"      <failure message={quoteattr(summary)} type=\"PolicyViolation\">"
-            f"{escape(chr(10).join(detail_lines))}</failure>"
+            f"      <failure message={_xml_attr(summary)} type=\"PolicyViolation\">"
+            f"{_xml_text(chr(10).join(detail_lines))}</failure>"
         )
         lines.append("    </testcase>")
     lines.append("  </testsuite>")

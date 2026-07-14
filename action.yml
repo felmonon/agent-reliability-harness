@@ -66,24 +66,41 @@ runs:
     - name: Validate traces and compare against baseline
       id: run
       shell: bash
+      # SECURITY: inputs are passed exclusively via env vars and referenced
+      # as quoted shell variables. Never interpolate ${{ inputs.* }} directly
+      # into this script: GitHub substitutes expressions as literal text
+      # before bash parses it, which enables shell injection.
+      env:
+        ARH_POLICY: ${{ inputs.policy }}
+        ARH_TRACES: ${{ inputs.traces }}
+        ARH_FORMAT: ${{ inputs.format }}
+        ARH_BASELINE: ${{ inputs.baseline }}
+        ARH_FAIL_ON: ${{ inputs.fail-on }}
+        ARH_MAX_SCORE_DROP: ${{ inputs.max-score-drop }}
+        ARH_FAIL_UNDER: ${{ inputs.fail-under }}
+        ARH_OUTPUT_DIR: ${{ inputs.output-dir }}
       run: |
         set -u
-        mkdir -p "${{ inputs.output-dir }}"
-        JSON_OUT="${{ inputs.output-dir }}/report.json"
-        MD_OUT="${{ inputs.output-dir }}/report.md"
-        JUNIT_OUT="${{ inputs.output-dir }}/report.xml"
-        SARIF_OUT="${{ inputs.output-dir }}/report.sarif"
+        mkdir -p "$ARH_OUTPUT_DIR"
+        JSON_OUT="$ARH_OUTPUT_DIR/report.json"
+        MD_OUT="$ARH_OUTPUT_DIR/report.md"
+        JUNIT_OUT="$ARH_OUTPUT_DIR/report.xml"
+        SARIF_OUT="$ARH_OUTPUT_DIR/report.sarif"
 
+        # ARH_TRACES holds space-separated paths/globs by contract, so word
+        # splitting and globbing are intentional here (it is data for arh,
+        # never re-parsed as shell syntax).
+        # shellcheck disable=SC2086
         set +e
         arh validate \
-          --policy "${{ inputs.policy }}" \
-          --format "${{ inputs.format }}" \
-          --fail-under "${{ inputs.fail-under }}" \
+          --policy "$ARH_POLICY" \
+          --format "$ARH_FORMAT" \
+          --fail-under "$ARH_FAIL_UNDER" \
           --json-out "$JSON_OUT" \
           --md-out "$MD_OUT" \
           --junit-out "$JUNIT_OUT" \
           --sarif-out "$SARIF_OUT" \
-          ${{ inputs.traces }}
+          $ARH_TRACES
         VALIDATE_CODE=$?
         set -e
 
@@ -92,19 +109,19 @@ runs:
         echo "junit-report=$JUNIT_OUT" >> "$GITHUB_OUTPUT"
         cat "$MD_OUT" >> "$GITHUB_STEP_SUMMARY"
 
-        if [ -n "${{ inputs.baseline }}" ]; then
-          COMPARE_JSON="${{ inputs.output-dir }}/compare.json"
-          COMPARE_MD="${{ inputs.output-dir }}/compare.md"
-          EXTRA=""
-          if [ -n "${{ inputs.max-score-drop }}" ]; then
-            EXTRA="--max-score-drop ${{ inputs.max-score-drop }}"
+        if [ -n "$ARH_BASELINE" ]; then
+          COMPARE_JSON="$ARH_OUTPUT_DIR/compare.json"
+          COMPARE_MD="$ARH_OUTPUT_DIR/compare.md"
+          EXTRA_ARGS=()
+          if [ -n "$ARH_MAX_SCORE_DROP" ]; then
+            EXTRA_ARGS+=(--max-score-drop "$ARH_MAX_SCORE_DROP")
           fi
           set +e
           arh compare \
-            --baseline "${{ inputs.baseline }}" \
+            --baseline "$ARH_BASELINE" \
             --candidate "$JSON_OUT" \
-            --fail-on "${{ inputs.fail-on }}" \
-            $EXTRA \
+            --fail-on "$ARH_FAIL_ON" \
+            "${EXTRA_ARGS[@]}" \
             --json-out "$COMPARE_JSON" \
             --md-out "$COMPARE_MD"
           COMPARE_CODE=$?

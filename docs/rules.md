@@ -99,6 +99,18 @@ Remediation: Trim prompts/outputs or reduce steps; raise max_total_tokens only i
 
 Remediation: Record input_tokens/output_tokens in the trace, or remove max_total_tokens.
 
+### ARH-BUD-006
+
+**Latency budget is set but the trace has no latency data** (default severity: warning)
+
+Remediation: Record latency_ms in the trace, or remove the latency budget.
+
+### ARH-BUD-007
+
+**Cost budget is set but the trace has no cost data** (default severity: warning)
+
+Remediation: Record cost_usd in the trace, or remove max_total_cost_usd.
+
 ## Safety
 
 ### ARH-SAF-001
