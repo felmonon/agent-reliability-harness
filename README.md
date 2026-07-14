@@ -130,7 +130,7 @@ no timestamps, no randomness, no clock reads.
 ## CI
 
 ```yaml
-- uses: felmonon/agent-reliability-harness@main
+- uses: felmonon/agent-reliability-harness@v0.2.1
   with:
     policy: policies/agent-policy.json
     traces: traces/*.json

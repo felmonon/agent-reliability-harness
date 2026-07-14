@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - uses: felmonon/agent-reliability-harness@main
+      - uses: felmonon/agent-reliability-harness@v0.2.1
         with:
           policy: policies/agent-policy.json
           traces: traces/*.json
@@ -51,7 +51,7 @@ jobs:
 ### Regression gate with a committed baseline
 
 ```yaml
-      - uses: felmonon/agent-reliability-harness@main
+      - uses: felmonon/agent-reliability-harness@v0.2.1
         id: arh
         with:
           policy: policies/agent-policy.json
@@ -63,7 +63,7 @@ jobs:
 ### Code-scanning annotations (SARIF)
 
 ```yaml
-      - uses: felmonon/agent-reliability-harness@main
+      - uses: felmonon/agent-reliability-harness@v0.2.1
         id: arh
         continue-on-error: true
         with:
