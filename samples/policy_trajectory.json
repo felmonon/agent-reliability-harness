@@ -1,0 +1,48 @@
+{
+  "schema_version": "1",
+  "policy_id": "refund-workflow-v1",
+  "allow_unlisted_tools": false,
+  "allowed_tools": {
+    "lookup_order": {
+      "required_arguments": { "order_id": { "type": "str", "pattern": "ORD-[0-9]+" } }
+    },
+    "check_refund_eligibility": {
+      "required_arguments": { "order_id": "str" }
+    },
+    "issue_refund": {
+      "required_arguments": {
+        "order_id": "str",
+        "amount": { "type": "float", "min": 0.01, "max": 500 }
+      },
+      "side_effect": true,
+      "max_calls": 1
+    },
+    "notify_customer": {
+      "required_arguments": { "order_id": "str", "channel": { "type": "str", "enum": ["email", "sms"] } }
+    }
+  },
+  "sequence": {
+    "required_tools": ["lookup_order", "check_refund_eligibility"],
+    "forbidden_tools": ["delete_order"],
+    "call_order": ["lookup_order", "check_refund_eligibility", "issue_refund"]
+  },
+  "error_handling": {
+    "require_retry_on_error": true,
+    "max_attempts": 3
+  },
+  "completion": {
+    "require_final_response": true,
+    "max_steps": 12
+  },
+  "budgets": {
+    "max_total_latency_ms": 8000,
+    "max_total_cost_usd": 0.5
+  },
+  "unsafe_patterns": [
+    "ignore (all|any|the) (previous|prior|above) instructions",
+    "\\bpassword\\s*[:=]"
+  ],
+  "grounding": {
+    "require_citations": false
+  }
+}
