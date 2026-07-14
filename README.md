@@ -79,7 +79,7 @@ GATE: FAIL
 The gate fails on new error findings, pass→fail transitions, and added failing
 traces — resolved findings and unchanged failures don't re-alarm. Gate modes:
 `--fail-on regressions` (default), `failures`, `never`; add `--max-score-drop`
-for score-based gating. See [docs/regression-testing.md](docs/regression-testing.md).
+for score-based gating. See [docs/regression-testing.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/regression-testing.md).
 
 ## What it checks
 
@@ -96,7 +96,7 @@ Seven deterministic categories; every finding carries a stable rule ID
 | flow | ARH-FLW-001..003 | ignored tool errors, retry storms, duplicate side effects |
 | completion | ARH-CMP-001..002 | missing final response, failure to terminate |
 
-Full reference: [docs/rules.md](docs/rules.md). Ordering rules are a
+Full reference: [docs/rules.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/rules.md). Ordering rules are a
 deliberate **partial order** (constraints), not an exact golden-trajectory
 match — agents can legitimately reach a goal via different paths.
 
@@ -104,7 +104,7 @@ match — agents can legitimately reach a goal via different paths.
 
 `arh validate` accepts (auto-detected, or forced with `--format`):
 
-- **arh** — the canonical JSON trace format ([TRACE-SPEC.md](TRACE-SPEC.md));
+- **arh** — the canonical JSON trace format ([TRACE-SPEC.md](https://github.com/felmonon/agent-reliability-harness/blob/main/TRACE-SPEC.md));
 - **openai-chat** — OpenAI Chat Completions message lists with `tool_calls`;
 - **anthropic-messages** — Anthropic Messages conversations with
   `tool_use`/`tool_result` blocks.
@@ -112,7 +112,7 @@ match — agents can legitimately reach a goal via different paths.
 Adapters never guess: fields a transcript format cannot carry (latency, cost,
 tokens) are left unset, which marks the dependent checks *not applicable*
 instead of silently passing them. Unparseable input is recorded in the trace's
-metadata, not dropped. See [docs/adapters.md](docs/adapters.md).
+metadata, not dropped. See [docs/adapters.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/adapters.md).
 
 ## Reports
 
@@ -134,7 +134,7 @@ no timestamps, no randomness, no clock reads.
 The action writes JSON/Markdown/JUnit/SARIF reports, appends the Markdown
 summary to the workflow step summary, and fails according to the gate. It uses
 no secrets and is fork-safe. Full reference and SARIF/JUnit upload examples:
-[docs/ci.md](docs/ci.md).
+[docs/ci.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/ci.md).
 
 ## Design principles
 
@@ -142,38 +142,40 @@ no secrets and is fork-safe. Full reference and SARIF/JUnit upload examples:
   application's dependency graph.
 - **Deterministic core.** No model calls, no network, no telemetry, no clock
   reads. Semantic (model-graded) evaluation is a planned, clearly separated
-  optional extra — never hidden inside deterministic scores ([ROADMAP.md](ROADMAP.md)).
+  optional extra — never hidden inside deterministic scores ([ROADMAP.md](https://github.com/felmonon/agent-reliability-harness/blob/main/ROADMAP.md)).
 - **Additive schema evolution.** v0.1.x traces, policies, and baselines work
   unchanged; unknown major schema versions are rejected loudly
-  ([COMPATIBILITY.md](COMPATIBILITY.md)).
+  ([COMPATIBILITY.md](https://github.com/felmonon/agent-reliability-harness/blob/main/COMPATIBILITY.md)).
 - **Evidence over claims.** The benchmark suite contains 34 seeded cases
   (28 expected-fail, 6 expected-pass controls) and measures detection:
   currently 34/34 correct, precision 1.0, recall 1.0, 0 false
   positives/negatives, byte-identical repeat runs, ~0.03 ms per trace. Those
   numbers cover *seeded, deterministically detectable* failures only — scope
-  and limits are documented in [BENCHMARK-METHODOLOGY.md](BENCHMARK-METHODOLOGY.md),
-  results in [BENCHMARK-RESULTS.md](BENCHMARK-RESULTS.md).
+  and limits are documented in [BENCHMARK-METHODOLOGY.md](https://github.com/felmonon/agent-reliability-harness/blob/main/BENCHMARK-METHODOLOGY.md),
+  results in [BENCHMARK-RESULTS.md](https://github.com/felmonon/agent-reliability-harness/blob/main/BENCHMARK-RESULTS.md).
 
 ## Documentation
 
 | Doc | What it covers |
 |---|---|
-| [docs/quickstart.md](docs/quickstart.md) | Five minutes from install to a regression gate |
-| [docs/concepts.md](docs/concepts.md) | Traces, policies, findings, scores, baselines |
-| [docs/policy-cookbook.md](docs/policy-cookbook.md) | Copy-paste recipes for every rule type |
-| [docs/adapters.md](docs/adapters.md) | OpenAI/Anthropic transcript ingestion, field mapping |
-| [docs/regression-testing.md](docs/regression-testing.md) | Baselines, fingerprints, gates |
-| [docs/ci.md](docs/ci.md) | GitHub Action reference and workflows |
-| [docs/rules.md](docs/rules.md) | Every rule ID with remediation |
-| [docs/troubleshooting.md](docs/troubleshooting.md) | Error messages and fixes |
-| [TRACE-SPEC.md](TRACE-SPEC.md) / [POLICY-SPEC.md](POLICY-SPEC.md) | Normative formats |
-| [ARCHITECTURE.md](ARCHITECTURE.md) / [DECISIONS.md](DECISIONS.md) | Design and ADRs |
+| [docs/quickstart.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/quickstart.md) | Five minutes from install to a regression gate |
+| [docs/concepts.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/concepts.md) | Traces, policies, findings, scores, baselines |
+| [docs/policy-cookbook.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/policy-cookbook.md) | Copy-paste recipes for every rule type |
+| [docs/adapters.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/adapters.md) | OpenAI/Anthropic transcript ingestion, field mapping |
+| [docs/regression-testing.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/regression-testing.md) | Baselines, fingerprints, gates |
+| [docs/ci.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/ci.md) | GitHub Action reference and workflows |
+| [docs/rules.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/rules.md) | Every rule ID with remediation |
+| [docs/troubleshooting.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/troubleshooting.md) | Error messages and fixes |
+| [TRACE-SPEC.md](https://github.com/felmonon/agent-reliability-harness/blob/main/TRACE-SPEC.md) / [POLICY-SPEC.md](https://github.com/felmonon/agent-reliability-harness/blob/main/POLICY-SPEC.md) | Normative formats |
+| [ARCHITECTURE.md](https://github.com/felmonon/agent-reliability-harness/blob/main/ARCHITECTURE.md) / [DECISIONS.md](https://github.com/felmonon/agent-reliability-harness/blob/main/DECISIONS.md) | Design and ADRs |
 
 ## Compatibility
 
-v0.1.x trace and policy files produce identical scores, verdicts, and finding
-messages under this version (pinned by golden tests). New fields are additive.
-Details: [COMPATIBILITY.md](COMPATIBILITY.md).
+v0.1.x trace and policy files remain accepted and preserve verdicts and finding
+messages. Two review-driven detection fixes are documented exceptions: nested safety
+scanning changes one sample score from 70.0 to 70.83, and strict telemetry validation
+rejects malformed values that v0.1 accepted. New report fields are additive.
+Details: [COMPATIBILITY.md](https://github.com/felmonon/agent-reliability-harness/blob/main/COMPATIBILITY.md).
 
 ## Development
 
@@ -187,7 +189,7 @@ python benchmarks/run.py               # thresholds enforced
 ```
 
 CI runs the suite on Linux/macOS/Windows across Python 3.11-3.13, plus
-packaging checks. Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+packaging checks. Contributions welcome — see [CONTRIBUTING.md](https://github.com/felmonon/agent-reliability-harness/blob/main/CONTRIBUTING.md).
 
 ## Author
 

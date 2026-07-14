@@ -32,7 +32,7 @@ from agent_reliability_harness.regression import (
 from agent_reliability_harness.rules import RULES, Rule
 from agent_reliability_harness.validator import validate_trace
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "ArgSpec",
