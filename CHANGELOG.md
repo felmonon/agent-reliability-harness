@@ -6,6 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-14
+
+### Fixed
+
+- Modernized packaging license metadata to the PEP 639/SPDX form
+  (`license = "MIT"`, `license-files = ["LICENSE"]`) and removed the
+  deprecated license classifier; builds no longer emit setuptools license
+  deprecation warnings.
+- Converted README documentation links to absolute GitHub URLs so they work
+  from the PyPI long-description renderer.
+- Corrected stale compatibility language that incorrectly claimed every
+  v0.1 score remained identical despite the documented nested-safety-scan
+  fix (70.0 -> 70.83 for one sample; verdict unchanged).
+
+
 ## [0.2.0] - 2026-07-14
 
 ### Added
@@ -90,8 +105,10 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ### Compatibility
 
-- v0.1.x trace and policy files produce identical scores, verdicts, and
-  finding messages (pinned by golden tests). New report fields are additive.
+- v0.1.x trace and policy files remain accepted; verdicts and finding
+  messages are preserved. The documented nested-safety-scan fix changes one
+  sample score from 70.0 to 70.83 (verdict unchanged). New report fields are
+  additive.
   `arh compare` accepts v0.1.x baselines via a rule-id-agnostic fallback
   match. Exit codes and console markers are unchanged. See COMPATIBILITY.md.
 

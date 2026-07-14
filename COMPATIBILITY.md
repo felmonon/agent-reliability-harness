@@ -8,11 +8,13 @@ forward.
 - **Trace and policy files work unchanged.** The v0.1.x formats are strict
   subsets of schema v1; a missing `schema_version` means `"1"`. No migration
   step exists because none is needed.
-- **Identical scores and verdicts.** New check categories (sequence, flow,
-  completion) are *not applicable* for policies that don't configure them, and
-  the score renormalizes over applicable categories only — so a v0.1.x policy
-  yields byte-identical scores. Pinned by `tests/test_compat_golden.py`
-  (sample scores 100.0 / 80.0 / 70.83, verdicts, and finding messages) and
+- **Preserved verdicts; scores preserved except one documented safety fix.**
+  New check categories (sequence, flow, completion) are *not applicable* for
+  policies that do not configure them, and the score renormalizes over applicable
+  categories. Golden tests pin scores 100.0 / 80.0 unchanged; the unsafe sample
+  changes from 70.0 to 70.83 because v0.2 recursively scans nested content that
+  v0.1 silently skipped. All three verdicts and finding messages are preserved.
+  See `tests/test_compat_golden.py` and
   `tests/test_trajectory_rules.py::TestLegacyScoreCompatibility`.
 - **Finding messages** for all v0.1.x checks are unchanged (golden-tested).
 - **Console markers** (`[PASS]`, `[FAIL]`, `[safety   ]` category blocks,
