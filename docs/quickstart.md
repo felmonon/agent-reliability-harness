@@ -6,7 +6,11 @@ from the code.
 
 ## 1. Install
 
-Not yet on PyPI — install from a checkout (or straight from GitHub):
+```bash
+python -m pip install agent-reliability-harness
+```
+
+Or, to work from a checkout (e.g. for contributing):
 
 ```bash
 python -m pip install -e .

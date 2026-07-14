@@ -1,5 +1,11 @@
 # Agent Reliability Harness
 
+[![PyPI](https://img.shields.io/pypi/v/agent-reliability-harness.svg)](https://pypi.org/project/agent-reliability-harness/)
+[![Python versions](https://img.shields.io/pypi/pyversions/agent-reliability-harness.svg)](https://pypi.org/project/agent-reliability-harness/)
+[![Downloads](https://img.shields.io/pypi/dm/agent-reliability-harness.svg)](https://pypi.org/project/agent-reliability-harness/)
+[![CI](https://github.com/felmonon/agent-reliability-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/felmonon/agent-reliability-harness/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/felmonon/agent-reliability-harness/blob/main/LICENSE)
+
 A provider-neutral, local-first reliability and regression-testing harness for
 tool-using AI agents. It validates recorded agent execution traces against
 declarative policies (tool-call contracts, trajectory rules, budgets, unsafe
@@ -33,14 +39,14 @@ and turns each of these concerns into a versioned policy rule with a stable ID.
 ## 60-second example
 
 ```bash
-python -m pip install -e .   # not yet on PyPI; install from a checkout
+python -m pip install agent-reliability-harness
 
 arh validate --policy samples/policy_trajectory.json \
   samples/traces/refund_workflow_pass.json \
   samples/traces/refund_workflow_double_refund.json
 ```
 
-The second trace ends with a perfectly plausible final answer — and still
+The second trace ends with a perfectly plausible final answer - and still
 fails, because the trajectory was unacceptable:
 
 ```text
@@ -52,7 +58,7 @@ fails, because the trajectory was unacceptable:
   - [ERROR  ] [sequence ] ARH-SEQ-003: call order violation: first call of 'lookup_order' must precede first call of 'issue_refund' (step=s1)
 ```
 
-Exit code `0` when everything passes, `1` on failure, `2` on usage errors —
+Exit code `0` when everything passes, `1` on failure, `2` on usage errors -
 usable as a CI gate as-is.
 
 ## Regression gates
@@ -77,7 +83,7 @@ GATE: FAIL
 ```
 
 The gate fails on new error findings, pass→fail transitions, and added failing
-traces — resolved findings and unchanged failures don't re-alarm. Gate modes:
+traces - resolved findings and unchanged failures don't re-alarm. Gate modes:
 `--fail-on regressions` (default), `failures`, `never`; add `--max-score-drop`
 for score-based gating. See [docs/regression-testing.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/regression-testing.md).
 
@@ -98,15 +104,15 @@ Seven deterministic categories; every finding carries a stable rule ID
 
 Full reference: [docs/rules.md](https://github.com/felmonon/agent-reliability-harness/blob/main/docs/rules.md). Ordering rules are a
 deliberate **partial order** (constraints), not an exact golden-trajectory
-match — agents can legitimately reach a goal via different paths.
+match - agents can legitimately reach a goal via different paths.
 
 ## Trace formats
 
 `arh validate` accepts (auto-detected, or forced with `--format`):
 
-- **arh** — the canonical JSON trace format ([TRACE-SPEC.md](https://github.com/felmonon/agent-reliability-harness/blob/main/TRACE-SPEC.md));
-- **openai-chat** — OpenAI Chat Completions message lists with `tool_calls`;
-- **anthropic-messages** — Anthropic Messages conversations with
+- **arh** - the canonical JSON trace format ([TRACE-SPEC.md](https://github.com/felmonon/agent-reliability-harness/blob/main/TRACE-SPEC.md));
+- **openai-chat** - OpenAI Chat Completions message lists with `tool_calls`;
+- **anthropic-messages** - Anthropic Messages conversations with
   `tool_use`/`tool_result` blocks.
 
 Adapters never guess: fields a transcript format cannot carry (latency, cost,
@@ -118,7 +124,7 @@ metadata, not dropped. See [docs/adapters.md](https://github.com/felmonon/agent-
 
 Console, JSON (doubles as the regression baseline), Markdown (PR-comment
 ready), JUnit XML, and SARIF 2.1.0 (GitHub code-scanning annotations). All
-renderers are deterministic: identical input produces byte-identical output —
+renderers are deterministic: identical input produces byte-identical output -
 no timestamps, no randomness, no clock reads.
 
 ## CI
@@ -142,7 +148,7 @@ no secrets and is fork-safe. Full reference and SARIF/JUnit upload examples:
   application's dependency graph.
 - **Deterministic core.** No model calls, no network, no telemetry, no clock
   reads. Semantic (model-graded) evaluation is a planned, clearly separated
-  optional extra — never hidden inside deterministic scores ([ROADMAP.md](https://github.com/felmonon/agent-reliability-harness/blob/main/ROADMAP.md)).
+  optional extra - never hidden inside deterministic scores ([ROADMAP.md](https://github.com/felmonon/agent-reliability-harness/blob/main/ROADMAP.md)).
 - **Additive schema evolution.** v0.1.x traces, policies, and baselines work
   unchanged; unknown major schema versions are rejected loudly
   ([COMPATIBILITY.md](https://github.com/felmonon/agent-reliability-harness/blob/main/COMPATIBILITY.md)).
@@ -150,7 +156,7 @@ no secrets and is fork-safe. Full reference and SARIF/JUnit upload examples:
   (28 expected-fail, 6 expected-pass controls) and measures detection:
   currently 34/34 correct, precision 1.0, recall 1.0, 0 false
   positives/negatives, byte-identical repeat runs, ~0.03 ms per trace. Those
-  numbers cover *seeded, deterministically detectable* failures only — scope
+  numbers cover *seeded, deterministically detectable* failures only - scope
   and limits are documented in [BENCHMARK-METHODOLOGY.md](https://github.com/felmonon/agent-reliability-harness/blob/main/BENCHMARK-METHODOLOGY.md),
   results in [BENCHMARK-RESULTS.md](https://github.com/felmonon/agent-reliability-harness/blob/main/BENCHMARK-RESULTS.md).
 
@@ -189,7 +195,7 @@ python benchmarks/run.py               # thresholds enforced
 ```
 
 CI runs the suite on Linux/macOS/Windows across Python 3.11-3.13, plus
-packaging checks. Contributions welcome — see [CONTRIBUTING.md](https://github.com/felmonon/agent-reliability-harness/blob/main/CONTRIBUTING.md).
+packaging checks. Contributions welcome - see [CONTRIBUTING.md](https://github.com/felmonon/agent-reliability-harness/blob/main/CONTRIBUTING.md).
 
 ## Author
 
