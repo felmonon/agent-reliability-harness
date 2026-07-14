@@ -36,6 +36,15 @@ It may:
 Final-answer evals miss all of this. This harness evaluates the **trajectory**,
 and turns each of these concerns into a versioned policy rule with a stable ID.
 
+## See it block a real regression
+
+[felmonon/arh-demo-refund-agent](https://github.com/felmonon/arh-demo-refund-agent)
+is a complete runnable demo: a refund agent, a trace recorder, this harness as
+an 11-line CI gate, and [an open pull request](https://github.com/felmonon/arh-demo-refund-agent/pull/1)
+where a harmless-looking prompt edit makes the agent refund customers twice —
+and the gate blocks the merge with `ARH-FLW-003` (duplicate side effect) while
+the agent's final answer still looks perfect.
+
 ## 60-second example
 
 ```bash
