@@ -1,0 +1,26 @@
+{
+  "trace_id": "anthropic-error-001",
+  "agent_name": "fetch-bot",
+  "workflow": "fetch",
+  "messages": [
+    {"role": "user", "content": "Get the page."},
+    {
+      "role": "assistant",
+      "content": [
+        {"type": "tool_use", "id": "toolu_f1", "name": "fetch_page", "input": {"url": "https://example.com"}}
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {"type": "tool_result", "tool_use_id": "toolu_f1", "is_error": true, "content": "HTTP 503 upstream unavailable"}
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {"type": "text", "text": "The page appears to be unavailable right now."}
+      ]
+    }
+  ]
+}

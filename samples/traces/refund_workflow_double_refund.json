@@ -1,0 +1,42 @@
+{
+  "schema_version": "1",
+  "trace_id": "refund-workflow-1002",
+  "agent_name": "refund-copilot",
+  "workflow": "refund",
+  "steps": [
+    {
+      "step_id": "s1",
+      "type": "tool_call",
+      "tool_name": "issue_refund",
+      "arguments": { "order_id": "ORD-2077", "amount": 88.0 },
+      "latency_ms": 400,
+      "cost_usd": 0.002,
+      "output": "refund queued"
+    },
+    {
+      "step_id": "s2",
+      "type": "tool_call",
+      "tool_name": "lookup_order",
+      "arguments": { "order_id": "ORD-2077" },
+      "latency_ms": 190,
+      "cost_usd": 0.001,
+      "output": { "status": "delivered", "amount": 88.0 }
+    },
+    {
+      "step_id": "s3",
+      "type": "tool_call",
+      "tool_name": "issue_refund",
+      "arguments": { "order_id": "ORD-2077", "amount": 88.0 },
+      "latency_ms": 410,
+      "cost_usd": 0.002,
+      "output": "refund queued"
+    },
+    {
+      "step_id": "s4",
+      "type": "model_response",
+      "text": "The refund of $88.00 for ORD-2077 has been processed.",
+      "latency_ms": 300,
+      "cost_usd": 0.003
+    }
+  ]
+}

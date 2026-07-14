@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/felmonon/agent-reliability-harness/blob/main/schemas/policy.schema.json",
+  "title": "ARH Policy",
+  "description": "Reliability policy, schema version 1. See POLICY-SPEC.md.",
+  "type": "object",
+  "required": ["policy_id"],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^1(\\..*)?$" },
+    "policy_id": { "type": "string", "minLength": 1 },
+    "allow_unlisted_tools": { "type": "boolean", "default": false },
+    "allowed_tools": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/toolSchema" }
+    },
+    "budgets": {
+      "type": "object",
+      "properties": {
+        "max_total_latency_ms": { "type": ["number", "null"], "minimum": 0 },
+        "max_step_latency_ms": { "type": ["number", "null"], "minimum": 0 },
+        "max_total_cost_usd": { "type": ["number", "null"], "minimum": 0 },
+        "max_total_tokens": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "unsafe_patterns": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Case-insensitive regular expressions that must not appear in agent-produced text."
+    },
+    "grounding": {
+      "type": "object",
+      "properties": {
+        "require_citations": { "type": "boolean", "default": false },
+        "min_citation_coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "require_valid_citation_urls": { "type": "boolean", "default": false }
+      },
+      "additionalProperties": false
+    },
+    "sequence": {
+      "type": "object",
+      "properties": {
+        "required_tools": { "type": "array", "items": { "type": "string" } },
+        "forbidden_tools": { "type": "array", "items": { "type": "string" } },
+        "call_order": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Partial order: for each pair of listed tools that were both called, the earlier-listed tool's first call must precede the later-listed tool's first call."
+        }
+      },
+      "additionalProperties": false
+    },
+    "error_handling": {
+      "type": "object",
+      "properties": {
+        "require_retry_on_error": { "type": "boolean", "default": false },
+        "max_attempts": { "type": ["integer", "null"], "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "completion": {
+      "type": "object",
+      "properties": {
+        "require_final_response": { "type": "boolean", "default": false },
+        "max_steps": { "type": ["integer", "null"], "minimum": 1 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "argSpec": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["str", "int", "float", "bool", "list", "dict", "any"],
+          "description": "Legacy form: bare type name."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["str", "int", "float", "bool", "list", "dict", "any"],
+              "default": "any"
+            },
+            "enum": { "type": "array" },
+            "pattern": { "type": "string", "description": "Full-match regular expression for string values." },
+            "min": { "type": "number" },
+            "max": { "type": "number" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "toolSchema": {
+      "type": "object",
+      "properties": {
+        "required_arguments": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/argSpec" }
+        },
+        "optional_arguments": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/argSpec" }
+        },
+        "side_effect": {
+          "type": "boolean",
+          "default": false,
+          "description": "Marks a tool whose repeated identical successful calls are duplicate side effects (ARH-FLW-003)."
+        },
+        "max_calls": { "type": ["integer", "null"], "minimum": 0 },
+        "min_calls": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

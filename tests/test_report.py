@@ -2,7 +2,12 @@ import json
 import unittest
 
 from agent_reliability_harness.models import Finding, TraceReport
-from agent_reliability_harness.report import render_console, render_json, render_json_str, render_markdown
+from agent_reliability_harness.report import (
+    render_console,
+    render_json,
+    render_json_str,
+    render_markdown,
+)
 
 
 def make_report(passed=True, findings=None, citation_coverage=0.9):

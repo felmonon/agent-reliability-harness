@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/felmonon/agent-reliability-harness/blob/main/schemas/trace.schema.json",
+  "title": "ARH Trace",
+  "description": "Canonical agent execution trace, schema version 1. See TRACE-SPEC.md.",
+  "type": "object",
+  "required": ["trace_id", "agent_name", "workflow", "steps"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Major schema version. Absent means '1' (the v0.1.x format is a strict subset of v1).",
+      "pattern": "^1(\\..*)?$"
+    },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "agent_name": { "type": "string" },
+    "workflow": { "type": "string" },
+    "source": {
+      "type": "string",
+      "description": "Provenance of the trace, e.g. 'openai-chat' when produced by an adapter."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Free-form extension field. Adapters record unmappable input under metadata.adapter."
+    },
+    "steps": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/step" }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "step": {
+      "type": "object",
+      "required": ["step_id", "type"],
+      "properties": {
+        "step_id": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["tool_call", "model_response"] },
+        "tool_name": { "type": ["string", "null"] },
+        "arguments": { "type": ["object", "null"] },
+        "text": { "type": ["string", "null"] },
+        "citations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source": { "type": "string" },
+              "url": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "latency_ms": { "type": ["number", "null"], "minimum": 0 },
+        "cost_usd": { "type": ["number", "null"], "minimum": 0 },
+        "requires_grounding": { "type": "boolean", "default": false },
+        "output": {},
+        "status": { "enum": ["ok", "error"], "default": "ok" },
+        "error": { "type": ["string", "null"] },
+        "input_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "output_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "metadata": { "type": "object" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

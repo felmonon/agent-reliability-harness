@@ -6,12 +6,24 @@ on:
   pull_request:
     branches: ["main"]
 
+permissions:
+  contents: read
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+        exclude:
+          # keep the matrix lean: full python spread on linux,
+          # oldest+newest on the other platforms
+          - os: macos-latest
+            python-version: "3.12"
+          - os: windows-latest
+            python-version: "3.12"
 
     steps:
       - uses: actions/checkout@v4
@@ -21,21 +33,77 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install package
-        run: pip install -e .
+      - name: Install package with dev extras
+        run: pip install -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: ruff check src tests benchmarks
+
+      - name: Type check (mypy)
+        run: mypy src
 
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
 
-      - name: Run CLI against sample traces (expected non-zero exit)
+      - name: Run benchmark suite (thresholds enforced)
+        run: python benchmarks/run.py
+
+      - name: Benchmark cases are in sync with the generator
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python benchmarks/tools/generate_cases.py
+          git diff --exit-code benchmarks/cases
+
+      - name: CLI smoke - validate (expected non-zero exit)
+        shell: bash
         run: |
           set +e
-          arh validate --policy samples/policy.json samples/traces/*.json \
-            --json-out /tmp/report.json --md-out /tmp/report.md
+          arh validate --policy samples/policy.json samples/traces/lead_qualification_pass.json \
+            samples/traces/renewal_workflow_budget_violation.json \
+            samples/traces/support_escalation_unsafe.json \
+            --json-out reports/report.json --md-out reports/report.md \
+            --junit-out reports/report.xml --sarif-out reports/report.sarif
           code=$?
-          echo "arh exit code: $code"
-          # Sample traces intentionally include failing scenarios (budget
-          # violation, unsafe pattern, missing citations), so a non-zero
-          # exit code here is expected and just proves the CLI wiring works
-          # end to end, not a CI failure.
-          exit 0
+          echo "arh validate exit code: $code (2 sample traces intentionally fail)"
+          test $code -eq 1
+
+      - name: CLI smoke - baseline and compare
+        shell: bash
+        run: |
+          arh validate --policy samples/policy_trajectory.json \
+            samples/traces/refund_workflow_pass.json \
+            --json-out reports/baseline.json --quiet
+          set +e
+          arh compare --baseline reports/baseline.json \
+            --policy samples/policy_trajectory.json \
+            samples/traces/refund_workflow_pass.json \
+            samples/traces/refund_workflow_double_refund.json \
+            --json-out reports/compare.json --md-out reports/compare.md
+          code=$?
+          echo "arh compare exit code: $code (double refund is a seeded regression)"
+          test $code -eq 1
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build sdist and wheel
+        run: |
+          pip install build
+          python -m build
+      - name: Install wheel in a clean environment and smoke test
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/pip install --quiet dist/*.whl
+          /tmp/clean/bin/arh --version
+          /tmp/clean/bin/arh validate --policy samples/policy_trajectory.json \
+            samples/traces/refund_workflow_pass.json --quiet
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/

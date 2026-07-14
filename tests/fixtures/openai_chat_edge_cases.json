@@ -1,0 +1,15 @@
+{
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Let me check that.",
+      "tool_calls": [
+        {"id": "call_bad", "type": "function", "function": {"name": "search", "arguments": "{not json"}}
+      ]
+    },
+    {"role": "tool", "tool_call_id": "call_missing", "content": "orphan result"},
+    {"role": "assistant", "function_call": {"name": "legacy_fn", "arguments": "{\"x\": 1}"}},
+    "not-an-object",
+    {"role": "assistant", "content": "Done."}
+  ]
+}

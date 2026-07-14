@@ -1,0 +1,134 @@
+name: "Agent Reliability Harness"
+description: >
+  Validate agent tool-use traces against a reliability policy and (optionally)
+  compare against a saved baseline to gate the workflow on real regressions.
+  Runs fully locally: no telemetry, no network calls, no secrets required.
+branding:
+  icon: "shield"
+  color: "green"
+
+inputs:
+  policy:
+    description: "Path to the policy JSON file"
+    required: true
+  traces:
+    description: "Space-separated trace file paths or globs"
+    required: true
+  format:
+    description: "Trace format: auto | arh | openai-chat | anthropic-messages"
+    required: false
+    default: "auto"
+  baseline:
+    description: >
+      Optional path to a baseline JSON report (from a previous
+      'arh validate --json-out'). When set, the action runs 'arh compare'
+      and gates on regressions instead of absolute failures.
+    required: false
+    default: ""
+  fail-on:
+    description: "Gate mode for compare: regressions | failures | never"
+    required: false
+    default: "regressions"
+  max-score-drop:
+    description: "Optional per-trace score-drop limit for the regressions gate"
+    required: false
+    default: ""
+  fail-under:
+    description: "Minimum passing score for validate (0-100)"
+    required: false
+    default: "70.0"
+  output-dir:
+    description: "Directory for report artifacts"
+    required: false
+    default: "arh-reports"
+
+outputs:
+  json-report:
+    description: "Path to the JSON validation report (next baseline)"
+    value: ${{ steps.run.outputs.json-report }}
+  sarif-report:
+    description: "Path to the SARIF report (upload with codeql-action/upload-sarif)"
+    value: ${{ steps.run.outputs.sarif-report }}
+  junit-report:
+    description: "Path to the JUnit XML report"
+    value: ${{ steps.run.outputs.junit-report }}
+  compare-report:
+    description: "Path to the comparison JSON (only when baseline was given)"
+    value: ${{ steps.run.outputs.compare-report }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install agent-reliability-harness
+      shell: bash
+      run: python -m pip install --quiet "${{ github.action_path }}"
+
+    - name: Validate traces and compare against baseline
+      id: run
+      shell: bash
+      # SECURITY: inputs are passed exclusively via env vars and referenced
+      # as quoted shell variables. Never interpolate ${{ inputs.* }} directly
+      # into this script: GitHub substitutes expressions as literal text
+      # before bash parses it, which enables shell injection.
+      env:
+        ARH_POLICY: ${{ inputs.policy }}
+        ARH_TRACES: ${{ inputs.traces }}
+        ARH_FORMAT: ${{ inputs.format }}
+        ARH_BASELINE: ${{ inputs.baseline }}
+        ARH_FAIL_ON: ${{ inputs.fail-on }}
+        ARH_MAX_SCORE_DROP: ${{ inputs.max-score-drop }}
+        ARH_FAIL_UNDER: ${{ inputs.fail-under }}
+        ARH_OUTPUT_DIR: ${{ inputs.output-dir }}
+      run: |
+        set -u
+        mkdir -p "$ARH_OUTPUT_DIR"
+        JSON_OUT="$ARH_OUTPUT_DIR/report.json"
+        MD_OUT="$ARH_OUTPUT_DIR/report.md"
+        JUNIT_OUT="$ARH_OUTPUT_DIR/report.xml"
+        SARIF_OUT="$ARH_OUTPUT_DIR/report.sarif"
+
+        # ARH_TRACES holds space-separated paths/globs by contract, so word
+        # splitting and globbing are intentional here (it is data for arh,
+        # never re-parsed as shell syntax).
+        # shellcheck disable=SC2086
+        set +e
+        arh validate \
+          --policy "$ARH_POLICY" \
+          --format "$ARH_FORMAT" \
+          --fail-under "$ARH_FAIL_UNDER" \
+          --json-out "$JSON_OUT" \
+          --md-out "$MD_OUT" \
+          --junit-out "$JUNIT_OUT" \
+          --sarif-out "$SARIF_OUT" \
+          $ARH_TRACES
+        VALIDATE_CODE=$?
+        set -e
+
+        echo "json-report=$JSON_OUT" >> "$GITHUB_OUTPUT"
+        echo "sarif-report=$SARIF_OUT" >> "$GITHUB_OUTPUT"
+        echo "junit-report=$JUNIT_OUT" >> "$GITHUB_OUTPUT"
+        cat "$MD_OUT" >> "$GITHUB_STEP_SUMMARY"
+
+        if [ -n "$ARH_BASELINE" ]; then
+          COMPARE_JSON="$ARH_OUTPUT_DIR/compare.json"
+          COMPARE_MD="$ARH_OUTPUT_DIR/compare.md"
+          EXTRA_ARGS=()
+          if [ -n "$ARH_MAX_SCORE_DROP" ]; then
+            EXTRA_ARGS+=(--max-score-drop "$ARH_MAX_SCORE_DROP")
+          fi
+          set +e
+          arh compare \
+            --baseline "$ARH_BASELINE" \
+            --candidate "$JSON_OUT" \
+            --fail-on "$ARH_FAIL_ON" \
+            "${EXTRA_ARGS[@]}" \
+            --json-out "$COMPARE_JSON" \
+            --md-out "$COMPARE_MD"
+          COMPARE_CODE=$?
+          set -e
+          echo "compare-report=$COMPARE_JSON" >> "$GITHUB_OUTPUT"
+          cat "$COMPARE_MD" >> "$GITHUB_STEP_SUMMARY"
+          exit $COMPARE_CODE
+        fi
+
+        exit $VALIDATE_CODE

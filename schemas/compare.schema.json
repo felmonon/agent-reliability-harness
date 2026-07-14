@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/felmonon/agent-reliability-harness/blob/main/schemas/compare.schema.json",
+  "title": "ARH Regression Comparison",
+  "description": "Output of 'arh compare --json-out'. See docs/regression-testing.md.",
+  "type": "object",
+  "required": ["summary", "gate", "traces"],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^1(\\..*)?$" },
+    "baseline_policy_id": { "type": "string" },
+    "candidate_policy_id": { "type": "string" },
+    "summary": {
+      "type": "object",
+      "required": [
+        "traces_compared", "traces_added", "traces_removed", "pass_to_fail",
+        "fail_to_pass", "new_findings", "new_error_findings",
+        "resolved_findings", "average_score_delta", "max_score_drop"
+      ],
+      "properties": {
+        "traces_compared": { "type": "integer", "minimum": 0 },
+        "traces_added": { "type": "integer", "minimum": 0 },
+        "traces_removed": { "type": "integer", "minimum": 0 },
+        "pass_to_fail": { "type": "integer", "minimum": 0 },
+        "fail_to_pass": { "type": "integer", "minimum": 0 },
+        "new_findings": { "type": "integer", "minimum": 0 },
+        "new_error_findings": { "type": "integer", "minimum": 0 },
+        "resolved_findings": { "type": "integer", "minimum": 0 },
+        "average_score_delta": { "type": "number" },
+        "max_score_drop": { "type": "number" }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "required": ["passed", "reasons"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "reasons": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "traces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["trace_id", "status_change", "new_findings", "resolved_findings"],
+        "properties": {
+          "trace_id": { "type": "string" },
+          "status_change": {
+            "enum": ["added", "removed", "pass->fail", "fail->pass", "unchanged"]
+          },
+          "baseline_passed": { "type": ["boolean", "null"] },
+          "candidate_passed": { "type": ["boolean", "null"] },
+          "baseline_score": { "type": ["number", "null"] },
+          "candidate_score": { "type": ["number", "null"] },
+          "score_delta": { "type": ["number", "null"] },
+          "latency_delta_ms": { "type": ["number", "null"] },
+          "cost_delta_usd": { "type": ["number", "null"] },
+          "new_findings": { "type": "array", "items": { "$ref": "#/$defs/findingRef" } },
+          "resolved_findings": { "type": "array", "items": { "$ref": "#/$defs/findingRef" } }
+        }
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "findingRef": {
+      "type": "object",
+      "required": ["trace_id", "severity", "category", "message", "rule_id"],
+      "properties": {
+        "trace_id": { "type": "string" },
+        "severity": { "type": "string" },
+        "category": { "type": "string" },
+        "message": { "type": "string" },
+        "step_id": { "type": ["string", "null"] },
+        "rule_id": { "type": "string" }
+      }
+    }
+  }
+}
