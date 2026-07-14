@@ -122,7 +122,7 @@ def to_trace_dict(raw: Any, fallback_trace_id: str) -> dict[str, Any]:
         elif role == "user":
             if not isinstance(content, list):
                 continue  # plain user text: agent input, skipped
-            for block_index, block in enumerate(content):
+            for block in content:
                 if not isinstance(block, dict) or block.get("type") != "tool_result":
                     continue
                 use_id = block.get("tool_use_id")

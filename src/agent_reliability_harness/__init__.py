@@ -10,6 +10,7 @@ The core is deterministic: no model calls, no network, no clock reads.
 """
 
 from agent_reliability_harness.models import (
+    SCHEMA_VERSION,
     ArgSpec,
     Budgets,
     CompletionPolicy,
@@ -17,7 +18,6 @@ from agent_reliability_harness.models import (
     Finding,
     GroundingPolicy,
     Policy,
-    SCHEMA_VERSION,
     SequencePolicy,
     Step,
     ToolSchema,

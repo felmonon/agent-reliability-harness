@@ -7,10 +7,9 @@ If one of these tests fails, either a compatibility break was introduced
 and the changelog first, then this test).
 """
 
+import json
 import unittest
 from pathlib import Path
-
-import json
 
 from agent_reliability_harness.models import Policy, Trace
 from agent_reliability_harness.validator import validate_trace

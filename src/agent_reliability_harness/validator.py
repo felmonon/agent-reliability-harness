@@ -37,17 +37,17 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 from agent_reliability_harness.models import (
+    TYPE_MAP,
     ArgSpec,
     Finding,
     Policy,
     Step,
     Trace,
     TraceReport,
-    TYPE_MAP,
 )
 
 DEFAULT_FAIL_UNDER = 70.0
@@ -133,7 +133,7 @@ def _check_schema(trace: Trace, policy: Policy) -> tuple[list[Finding], float, b
             for name, spec in schema.optional_arguments.items()
         }
 
-        for arg_name, spec in required_specs.items():
+        for arg_name in required_specs:
             if arg_name not in arguments:
                 findings.append(
                     Finding(
@@ -305,7 +305,7 @@ def _check_arg_value(
 
 def _check_budgets(
     trace: Trace, policy: Policy
-) -> tuple[list[Finding], float, bool, float, float, Optional[int]]:
+) -> tuple[list[Finding], float, bool, float, float, int | None]:
     findings: list[Finding] = []
     budgets = policy.budgets
     applicable = any(
@@ -325,7 +325,7 @@ def _check_budgets(
         for s in trace.steps
         if s.input_tokens is not None or s.output_tokens is not None
     ]
-    total_tokens: Optional[int] = sum(token_values) if token_values else None
+    total_tokens: int | None = sum(token_values) if token_values else None
 
     if not applicable:
         return findings, 100.0, False, total_latency, total_cost, total_tokens
@@ -478,7 +478,7 @@ def _check_safety(trace: Trace, policy: Policy) -> tuple[list[Finding], float, b
     for step in trace.steps:
         for blob in _iter_text_blobs(step):
             total_checks += 1
-            for pattern, raw_pattern in zip(compiled, policy.unsafe_patterns):
+            for pattern, raw_pattern in zip(compiled, policy.unsafe_patterns, strict=True):
                 match = pattern.search(blob)
                 if match:
                     violations += 1

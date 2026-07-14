@@ -18,7 +18,7 @@ are rejected with a precise error instead of being silently misread.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 #: Current canonical schema version for traces, policies, and reports.
 SCHEMA_VERSION = "1"
@@ -58,23 +58,23 @@ class Step:
 
     step_id: str
     type: str  # "tool_call" | "model_response"
-    tool_name: Optional[str] = None
-    arguments: Optional[dict[str, Any]] = None
-    text: Optional[str] = None
+    tool_name: str | None = None
+    arguments: dict[str, Any] | None = None
+    text: str | None = None
     citations: list[dict[str, Any]] = field(default_factory=list)
-    latency_ms: Optional[float] = None
-    cost_usd: Optional[float] = None
+    latency_ms: float | None = None
+    cost_usd: float | None = None
     requires_grounding: bool = False
     output: Any = None
     # --- v1 additions (all optional; absent in v0.1.x traces) ---
     status: str = "ok"  # "ok" | "error"
-    error: Optional[str] = None
-    input_tokens: Optional[int] = None
-    output_tokens: Optional[int] = None
+    error: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def from_dict(raw: dict[str, Any]) -> "Step":
+    def from_dict(raw: dict[str, Any]) -> Step:
         if not isinstance(raw, dict):
             raise ValueError(f"step must be an object, got {type(raw).__name__}")
         if "step_id" not in raw:
@@ -98,7 +98,7 @@ class Step:
                 f"(expected one of {list(STEP_STATUSES)})"
             )
 
-        def _opt_int(key: str) -> Optional[int]:
+        def _opt_int(key: str) -> int | None:
             value = raw.get(key)
             if value is None:
                 return None
@@ -151,11 +151,11 @@ class Trace:
     steps: list[Step] = field(default_factory=list)
     # --- v1 additions ---
     schema_version: str = SCHEMA_VERSION
-    source: Optional[str] = None
+    source: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def from_dict(raw: dict[str, Any]) -> "Trace":
+    def from_dict(raw: dict[str, Any]) -> Trace:
         if not isinstance(raw, dict):
             raise ValueError(f"trace must be an object, got {type(raw).__name__}")
         version = _check_schema_version(raw, "trace")
@@ -209,13 +209,13 @@ class ArgSpec:
     """
 
     type: str = "any"
-    enum: Optional[list[Any]] = None
-    pattern: Optional[str] = None
-    min_value: Optional[float] = None
-    max_value: Optional[float] = None
+    enum: list[Any] | None = None
+    pattern: str | None = None
+    min_value: float | None = None
+    max_value: float | None = None
 
     @staticmethod
-    def from_raw(raw: Any, context: str) -> "ArgSpec":
+    def from_raw(raw: Any, context: str) -> ArgSpec:
         if isinstance(raw, str):
             return ArgSpec(type=raw)
         if isinstance(raw, ArgSpec):
@@ -259,11 +259,11 @@ class ToolSchema:
     optional_arguments: dict[str, Any] = field(default_factory=dict)
     # --- v1 additions ---
     side_effect: bool = False
-    max_calls: Optional[int] = None
-    min_calls: Optional[int] = None
+    max_calls: int | None = None
+    min_calls: int | None = None
 
     @staticmethod
-    def from_dict(raw: dict[str, Any], tool_name: str = "?") -> "ToolSchema":
+    def from_dict(raw: dict[str, Any], tool_name: str = "?") -> ToolSchema:
         if not isinstance(raw, dict):
             raise ValueError(f"policy tool '{tool_name}' schema must be an object")
 
@@ -276,7 +276,7 @@ class ToolSchema:
                 for name, spec in section.items()
             }
 
-        def _opt_count(key: str) -> Optional[int]:
+        def _opt_count(key: str) -> int | None:
             value = raw.get(key)
             if value is None:
                 return None
@@ -306,14 +306,14 @@ class ToolSchema:
 class Budgets:
     """Latency, cost, and token ceilings for a trace."""
 
-    max_total_latency_ms: Optional[float] = None
-    max_step_latency_ms: Optional[float] = None
-    max_total_cost_usd: Optional[float] = None
+    max_total_latency_ms: float | None = None
+    max_step_latency_ms: float | None = None
+    max_total_cost_usd: float | None = None
     # --- v1 additions ---
-    max_total_tokens: Optional[int] = None
+    max_total_tokens: int | None = None
 
     @staticmethod
-    def from_dict(raw: dict[str, Any]) -> "Budgets":
+    def from_dict(raw: dict[str, Any]) -> Budgets:
         if not isinstance(raw, dict):
             raise ValueError("policy field 'budgets' must be an object")
         max_total_tokens = raw.get("max_total_tokens")
@@ -341,7 +341,7 @@ class GroundingPolicy:
     require_valid_citation_urls: bool = False
 
     @staticmethod
-    def from_dict(raw: dict[str, Any]) -> "GroundingPolicy":
+    def from_dict(raw: dict[str, Any]) -> GroundingPolicy:
         if not isinstance(raw, dict):
             raise ValueError("policy field 'grounding' must be an object")
         return GroundingPolicy(
@@ -377,7 +377,7 @@ class SequencePolicy:
     call_order: list[str] = field(default_factory=list)
 
     @staticmethod
-    def from_dict(raw: dict[str, Any]) -> "SequencePolicy":
+    def from_dict(raw: dict[str, Any]) -> SequencePolicy:
         if not isinstance(raw, dict):
             raise ValueError("policy field 'sequence' must be an object")
         policy = SequencePolicy(
@@ -413,10 +413,10 @@ class ErrorHandlingPolicy:
     """
 
     require_retry_on_error: bool = False
-    max_attempts: Optional[int] = None
+    max_attempts: int | None = None
 
     @staticmethod
-    def from_dict(raw: dict[str, Any]) -> "ErrorHandlingPolicy":
+    def from_dict(raw: dict[str, Any]) -> ErrorHandlingPolicy:
         if not isinstance(raw, dict):
             raise ValueError("policy field 'error_handling' must be an object")
         max_attempts = raw.get("max_attempts")
@@ -444,10 +444,10 @@ class CompletionPolicy:
     """
 
     require_final_response: bool = False
-    max_steps: Optional[int] = None
+    max_steps: int | None = None
 
     @staticmethod
-    def from_dict(raw: dict[str, Any]) -> "CompletionPolicy":
+    def from_dict(raw: dict[str, Any]) -> CompletionPolicy:
         if not isinstance(raw, dict):
             raise ValueError("policy field 'completion' must be an object")
         max_steps = raw.get("max_steps")
@@ -481,7 +481,7 @@ class Policy:
     completion: CompletionPolicy = field(default_factory=CompletionPolicy)
 
     @staticmethod
-    def from_dict(raw: dict[str, Any]) -> "Policy":
+    def from_dict(raw: dict[str, Any]) -> Policy:
         if not isinstance(raw, dict):
             raise ValueError(f"policy must be an object, got {type(raw).__name__}")
         version = _check_schema_version(raw, "policy")
@@ -527,12 +527,12 @@ class Finding:
     severity: Severity
     category: str  # "schema" | "budget" | "safety" | "grounding" | "sequence" | "flow" | "completion"
     message: str
-    step_id: Optional[str] = None
+    step_id: str | None = None
     # --- v1 additions ---
     rule_id: str = ""
-    expected: Optional[str] = None
-    observed: Optional[str] = None
-    remediation: Optional[str] = None
+    expected: str | None = None
+    observed: str | None = None
+    remediation: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -562,12 +562,12 @@ class TraceReport:
     findings: list[Finding]
     total_latency_ms: float
     total_cost_usd: float
-    citation_coverage: Optional[float]
+    citation_coverage: float | None
     score: float
     passed: bool
     # --- v1 additions ---
-    total_tokens: Optional[int] = None
-    source_path: Optional[str] = None
+    total_tokens: int | None = None
+    source_path: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {

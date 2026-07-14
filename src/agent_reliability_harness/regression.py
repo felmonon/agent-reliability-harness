@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 GATE_CHOICES = ("regressions", "failures", "never")
 
@@ -34,11 +34,11 @@ class FindingRef:
     severity: str
     category: str
     message: str
-    step_id: Optional[str]
+    step_id: str | None
     rule_id: str
 
     @staticmethod
-    def from_json(trace_id: str, raw: dict[str, Any]) -> "FindingRef":
+    def from_json(trace_id: str, raw: dict[str, Any]) -> FindingRef:
         return FindingRef(
             trace_id=trace_id,
             severity=str(raw.get("severity", "")),
@@ -73,13 +73,13 @@ class TraceDelta:
     trace_id: str
     in_baseline: bool
     in_candidate: bool
-    baseline_passed: Optional[bool] = None
-    candidate_passed: Optional[bool] = None
-    baseline_score: Optional[float] = None
-    candidate_score: Optional[float] = None
-    score_delta: Optional[float] = None
-    latency_delta_ms: Optional[float] = None
-    cost_delta_usd: Optional[float] = None
+    baseline_passed: bool | None = None
+    candidate_passed: bool | None = None
+    baseline_score: float | None = None
+    candidate_score: float | None = None
+    score_delta: float | None = None
+    latency_delta_ms: float | None = None
+    cost_delta_usd: float | None = None
     new_findings: list[FindingRef] = field(default_factory=list)
     resolved_findings: list[FindingRef] = field(default_factory=list)
 
@@ -258,7 +258,9 @@ def _diff_findings(
                 still_resolved.append(finding)
         new, resolved = still_new, still_resolved
 
-    ordering = lambda f: (f.trace_id, f.rule_id, f.category, f.step_id or "", f.message)
+    def ordering(f: FindingRef) -> tuple[str, str, str, str, str]:
+        return (f.trace_id, f.rule_id, f.category, f.step_id or "", f.message)
+
     return sorted(new, key=ordering), sorted(resolved, key=ordering)
 
 
@@ -324,7 +326,7 @@ def compare_reports(
 def evaluate_gate(
     result: ComparisonResult,
     fail_on: str = "regressions",
-    max_score_drop: Optional[float] = None,
+    max_score_drop: float | None = None,
 ) -> tuple[bool, list[str]]:
     """Decide whether the comparison passes the CI gate.
 

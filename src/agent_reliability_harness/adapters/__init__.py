@@ -22,7 +22,8 @@ passing them.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from agent_reliability_harness.adapters import anthropic_messages, openai_chat
 

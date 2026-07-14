@@ -96,7 +96,7 @@ def render_markdown(reports: list[TraceReport]) -> str:
     lines.append(f"**{passed}/{total} traces passed** - average score **{avg_score:.1f}/100**")
     lines.append("")
     lines.append("| Trace | Agent | Workflow | Status | Score | Latency (ms) | Cost ($) | Citation Coverage |")
-    lines.append("|---|---|---|---|---|---|---|---|") 
+    lines.append("|---|---|---|---|---|---|---|---|")
     for report in reports:
         status = "PASS" if report.passed else "FAIL"
         coverage = f"{report.citation_coverage:.0%}" if report.citation_coverage is not None else "n/a"

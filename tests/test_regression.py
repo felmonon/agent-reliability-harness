@@ -13,7 +13,6 @@ from agent_reliability_harness.regression import (
 from agent_reliability_harness.report import render_json
 from agent_reliability_harness.validator import validate_trace
 
-
 POLICY = Policy.from_dict(
     {
         "policy_id": "p",
