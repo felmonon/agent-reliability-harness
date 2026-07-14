@@ -54,7 +54,10 @@ and record unmappable input in `metadata.adapter.notes` instead of dropping it.
 ## ADR-006: Unverifiable budgets warn; nothing silently passes
 
 If a policy sets `max_total_tokens` but the trace records no token usage, the
-harness emits ARH-BUD-005 (warning) instead of passing the check. Direct lesson
+harness emits ARH-BUD-005 (warning) instead of passing the check. The same
+principle was extended in review to latency budgets (ARH-BUD-006) and the cost
+budget (ARH-BUD-007); all three warnings are score-neutral so that
+warning-only traces never fail. Direct lesson
 from promptfoo's silent-pass-on-missing-threshold bug class (#9910, #9848 —
 `research/user-problems.md`): a check the input cannot demonstrate compliance
 with must be visible, not green.

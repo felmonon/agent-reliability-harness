@@ -135,9 +135,10 @@ that fail to terminate).
 }
 ```
 
-Rules `ARH-BUD-001..004`. Note: if you set `max_total_tokens` but the trace
-records no token usage, you get a **warning** (`ARH-BUD-005`) instead of a
-silent pass — a budget the trace cannot demonstrate compliance with is not
+Rules `ARH-BUD-001..004`. Note: any budget the trace cannot demonstrate
+compliance with produces a score-neutral **warning** instead of a silent
+pass: `ARH-BUD-005` (token budget, no token data), `ARH-BUD-006` (latency
+budget, no latency data), `ARH-BUD-007` (cost budget, no cost data) — a budget the trace cannot demonstrate compliance with is not
 "met". Record `input_tokens`/`output_tokens` on steps, or remove the budget.
 
 ## Unsafe content patterns

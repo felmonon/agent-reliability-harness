@@ -207,22 +207,27 @@ class TestCompareCli(unittest.TestCase):
             doc = json.loads(next_baseline.read_text(encoding="utf-8"))
             self.assertIn("reports", doc)
 
-    def test_compare_usage_errors(self):
+    def test_compare_usage_errors_exit_2(self):
+        import contextlib as _ctx
+        import io as _io
+
         with tempfile.TemporaryDirectory() as tmp:
             baseline = Path(tmp) / "baseline.json"
             run_cli(
                 ["validate", "--policy", str(TRAJ_POLICY), str(PASS_TRACE),
                  "--json-out", str(baseline), "--quiet"]
             )
-            with self.assertRaises(SystemExit):
-                run_cli(["compare", "--baseline", str(baseline)])
-            with self.assertRaises(SystemExit):
-                run_cli(["compare", "--baseline", str(baseline), str(PASS_TRACE)])
-            with self.assertRaises(SystemExit):
-                run_cli(
-                    ["compare", "--baseline", str(baseline), "--candidate",
-                     str(baseline), "--policy", str(TRAJ_POLICY), str(PASS_TRACE)]
-                )
+            usage_cases = [
+                ["compare", "--baseline", str(baseline)],
+                ["compare", "--baseline", str(baseline), str(PASS_TRACE)],
+                ["compare", "--baseline", str(baseline), "--candidate",
+                 str(baseline), "--policy", str(TRAJ_POLICY), str(PASS_TRACE)],
+            ]
+            for args in usage_cases:
+                with self.assertRaises(SystemExit) as ctx:
+                    with _ctx.redirect_stderr(_io.StringIO()):
+                        run_cli(args)
+                self.assertEqual(ctx.exception.code, 2, args)
 
     def test_compare_rejects_non_report_baseline(self):
         with tempfile.TemporaryDirectory() as tmp:

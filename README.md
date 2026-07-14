@@ -89,7 +89,7 @@ Seven deterministic categories; every finding carries a stable rule ID
 | Category | Rules | Examples |
 |---|---|---|
 | schema | ARH-SCH-001..010 | unlisted tool, missing/mistyped args, enum/pattern/range violations |
-| budget | ARH-BUD-001..005 | step/total latency, cost, token budgets |
+| budget | ARH-BUD-001..007 | step/total latency, cost, and token budgets, plus unverifiable-budget warnings |
 | safety | ARH-SAF-001 | prompt-injection phrases, secret-like strings (policy regexes) |
 | grounding | ARH-GRD-001..003 | missing citations, low coverage, malformed citation URLs |
 | sequence | ARH-SEQ-001..005 | required/forbidden tools, partial-order violations, call counts |
@@ -180,7 +180,7 @@ Details: [COMPATIBILITY.md](COMPATIBILITY.md).
 ```bash
 python -m venv .venv && source .venv/bin/activate
 python -m pip install -e ".[dev]"
-python -m unittest discover -s tests   # 165+ tests
+python -m unittest discover -s tests   # full suite (194 tests as of 0.2.0)
 ruff check src tests benchmarks
 mypy src                               # strict
 python benchmarks/run.py               # thresholds enforced

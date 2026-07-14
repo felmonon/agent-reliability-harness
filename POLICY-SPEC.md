@@ -76,7 +76,10 @@ Object form (v1):
 
 **Unverifiable budgets warn, never silently pass:** if `max_total_tokens` is set
 but no step records token usage, the warning **ARH-BUD-005** is emitted instead
-of a silent pass. (Design rationale: DECISIONS.md ADR-006.)
+of a silent pass. Likewise, a latency budget (`max_step_latency_ms` or
+`max_total_latency_ms`) with no `latency_ms` recorded on any step emits
+**ARH-BUD-006**, and `max_total_cost_usd` with no `cost_usd` recorded emits
+**ARH-BUD-007**. All three warnings are score-neutral and never fail a trace. (Design rationale: DECISIONS.md ADR-006.)
 
 ## `unsafe_patterns`
 

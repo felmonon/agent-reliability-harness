@@ -59,6 +59,12 @@ def _load_json(path: Path) -> Any:
         raise SystemExit(f"error: failed to read {path}: {exc}") from exc
 
 
+def _usage_error(message: str) -> SystemExit:
+    """A misuse of CLI flags/arguments: print to stderr, exit with code 2."""
+    print(f"error: {message}", file=sys.stderr)
+    return SystemExit(2)
+
+
 def _fail_under_value(text: str) -> float:
     try:
         value = float(text)
@@ -181,7 +187,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "traces",
         nargs="*",
         type=Path,
-        help="Candidate trace file(s) (requires --policy; ignored with --candidate)",
+        help="Candidate trace file(s) (requires --policy; cannot be combined with --candidate)",
     )
     compare_parser.add_argument(
         "--policy",
@@ -315,18 +321,18 @@ def _run_compare(args: argparse.Namespace) -> int:
     baseline_json = _load_json(args.baseline)
 
     if args.candidate is not None and (args.traces or args.policy):
-        raise SystemExit(
-            "error: pass either --candidate REPORT or --policy POLICY with trace "
-            "files, not both"
+        raise _usage_error(
+            "pass either --candidate REPORT or --policy POLICY with trace files, "
+            "not both"
         )
 
     if args.candidate is not None:
         candidate_json = _load_json(args.candidate)
     elif args.traces:
         if args.policy is None:
-            raise SystemExit(
-                "error: candidate trace files require --policy (or use --candidate "
-                "with a pre-computed report)"
+            raise _usage_error(
+                "candidate trace files require --policy (or use --candidate with a "
+                "pre-computed report)"
             )
         policy = _load_policy(args.policy)
         reports = _validate_traces(args.traces, policy, args.format, args.fail_under)
@@ -336,9 +342,9 @@ def _run_compare(args: argparse.Namespace) -> int:
             if not args.quiet:
                 print(f"Candidate report written to {args.candidate_json_out}")
     else:
-        raise SystemExit(
-            "error: nothing to compare; pass --candidate REPORT or --policy POLICY "
-            "with candidate trace files"
+        raise _usage_error(
+            "nothing to compare; pass --candidate REPORT or --policy POLICY with "
+            "candidate trace files"
         )
 
     try:

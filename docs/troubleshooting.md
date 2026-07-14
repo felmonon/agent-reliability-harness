@@ -5,12 +5,12 @@
 | Code | Meaning |
 |---|---|
 | 0 | validation passed / gate passed |
-| 1 | at least one trace failed / gate failed |
-| 2 | usage or input error (bad flags, unreadable/invalid files) |
+| 1 | at least one trace failed / gate failed / an input file (trace, policy, or baseline) was invalid |
+| 2 | command-line usage error (bad/missing flags, invalid flag combinations) |
 
 ## Common errors
 
-All input errors exit with code 2 and a message starting `error:` — no Python
+All input-file errors exit with code 1 and a message starting `error:` — no Python
 tracebacks for bad input. If you ever see a traceback, that's a bug; please
 report it.
 

@@ -1,0 +1,5 @@
+include LICENSE README.md CHANGELOG.md
+recursive-include schemas *.json
+recursive-include samples *.json
+recursive-include tests *.py
+recursive-include tests/fixtures *.json

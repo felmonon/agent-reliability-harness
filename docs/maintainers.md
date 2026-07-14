@@ -41,5 +41,5 @@ path documented in COMPATIBILITY.md.
 - Compatibility: does `tests/test_compat_golden.py` still pass untouched?
 - Fingerprints: does the change alter `(trace_id, rule_id, category, step_id)`
   for existing findings? That silently breaks users' baselines.
-- Error paths: malformed input must exit 2 with `error: ...`, never a
+- Error paths: malformed input must exit 1 with `error: ...`, never a
   traceback (`tests/test_adversarial.py`).
