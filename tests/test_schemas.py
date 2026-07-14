@@ -64,6 +64,36 @@ class TestSchemas(unittest.TestCase):
         errors = list(jsonschema.Draft202012Validator(schema).iter_errors(document))
         self.assertEqual(errors, [], [e.message for e in errors])
 
+    def test_live_compare_output_validates(self):
+        from agent_reliability_harness.models import Policy, Trace
+        from agent_reliability_harness.regression import (
+            compare_reports,
+            evaluate_gate,
+            render_compare_json,
+        )
+        from agent_reliability_harness.report import render_json
+        from agent_reliability_harness.validator import validate_trace
+
+        policy = Policy.from_dict(load(SAMPLES / "policy_trajectory.json"))
+
+        def report_for(name):
+            trace = Trace.from_dict(load(SAMPLES / "traces" / name))
+            return validate_trace(trace, policy)
+
+        baseline = render_json([report_for("refund_workflow_pass.json")])
+        candidate = render_json(
+            [
+                report_for("refund_workflow_pass.json"),
+                report_for("refund_workflow_double_refund.json"),
+            ]
+        )
+        result = compare_reports(baseline, candidate)
+        gate_passed, reasons = evaluate_gate(result)
+        document = render_compare_json(result, gate_passed, reasons)
+        schema = load(SCHEMAS / "compare.schema.json")
+        errors = list(jsonschema.Draft202012Validator(schema).iter_errors(document))
+        self.assertEqual(errors, [], [e.message for e in errors])
+
     def test_schema_rejects_bad_trace(self):
         schema = load(SCHEMAS / "trace.schema.json")
         validator = jsonschema.Draft202012Validator(schema)
